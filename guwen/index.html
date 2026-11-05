@@ -290,6 +290,7 @@ function renderHome(app){
     <span class="st">${q ? (rewarded() ? `第一次 ${q.first} 分，本週獎金 ${weekMoney(w)} 元` : `第一次 ${q.first} 分`) : "還沒考"}</span></button>`);
   qm.onclick = () => { view = {name:"quiz", week:w}; render(); }; grid.append(qm);
   app.append(grid);
+  app.append(boardPanel(w));
 }
 
 function moneyPanel(){
@@ -304,6 +305,27 @@ function moneyPanel(){
     <div class="goal"><span class="small">領獎方式：</span></div></div>`);
   ["每週領","每 4 週領","每 8 週領"].forEach((t) => { const c = $(`<button class="chip" aria-pressed="${p.payout === t}">${t}</button>`); c.onclick = () => { p.payout = t; save(); render(); }; el.querySelector(".goal").append(c); });
   el.querySelectorAll(".paid").forEach((b) => b.onclick = () => { const w = b.dataset.w; p.paid[w] = !p.paid[w]; save(); render(); });
+  return el;
+}
+
+function boardPanel(w){
+  const el = $(`<div class="panel"><h3>第 ${w} 週排行榜</h3><div class="small muted" id="lb-msg">讀取大家的進度…</div><div class="chart"><table id="lb" hidden><thead><tr><th>名次</th><th>偵探</th><th>本週柴犬章</th><th>週考</th><th>累計章</th></tr></thead><tbody></tbody></table></div></div>`);
+  if (!API.startsWith("https") || !CLOUD.pw[S.current]) { el.querySelector("#lb-msg").textContent = "連上雲端後才看得到排行榜。"; return el; }
+  api({ action:"board", name:S.current, pw:CLOUD.pw[S.current] }).then((r) => {
+    if (!r.ok) return el.querySelector("#lb-msg").textContent = "讀不到排行榜。";
+    const rows = r.board.map((b) => ({ name:b.name, s:(b.weeks[w] || {}).stamps || 0, q:(b.weeks[w] || {}).quiz, t:b.total || 0 }))
+      .sort((a, b) => b.s - a.s || ((b.q ?? -1) - (a.q ?? -1)) || b.t - a.t);
+    if (!rows.length) return el.querySelector("#lb-msg").textContent = "還沒有人開始，搶第一個蓋章吧！";
+    const tb = el.querySelector("tbody");
+    rows.forEach((x, i) => { const mine = x.name === S.current;
+      tb.append($(`<tr style="${mine ? "font-weight:700;color:var(--ball)" : ""}"><td>${i + 1}</td><td>${esc(x.name)}${mine ? "（你）" : ""}</td><td>${x.s}／6</td><td>${x.q == null ? "未考" : x.q + " 分"}</td><td>${x.t}</td></tr>`)); });
+    el.querySelector("#lb").hidden = false;
+    const me_ = rows.findIndex((x) => x.name === S.current);
+    let msg = "大家一起加油！";
+    if (me_ === 0) msg = "你是本週第一名，守住它！";
+    else if (me_ > 0) { const gap = rows[me_ - 1].s - rows[me_].s; msg = gap > 0 ? `再蓋 ${gap} 枚章就追上 ${rows[me_ - 1].name}！` : `跟 ${rows[me_ - 1].name} 同樣 ${rows[me_].s} 枚，週考分數決勝負！`; }
+    el.querySelector("#lb-msg").textContent = msg;
+  }).catch(() => { el.querySelector("#lb-msg").textContent = "連不上雲端，等一下再看。"; });
   return el;
 }
 
