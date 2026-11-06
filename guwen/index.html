@@ -114,6 +114,17 @@ input.fill.right{border-color:var(--ok)} input.fill.wrong{border-color:var(--bad
 @keyframes fxring{to{transform:scale(4);opacity:0}}
 @keyframes fxpetal{to{transform:translate(var(--dx),var(--dy)) rotate(var(--r));opacity:0}}
 @media (prefers-reduced-motion:reduce){.fx{display:none}}
+.replay{position:fixed;inset:0;z-index:90;background:rgba(14,22,38,.97);backdrop-filter:blur(4px);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px;text-align:center;cursor:pointer}
+.replay .rp-title{font-size:.95rem;opacity:.8;letter-spacing:.1em}
+.replay .rp-combo{font-family:var(--f-display);font-weight:900;font-size:2.6rem;min-height:3.2rem;color:#ffb347;text-shadow:0 2px 0 #c2410c}
+.replay .rp-score{font-size:1.1rem}
+.replay .rp-dots{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:360px}
+.replay .rp-dots i{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.35);display:block}
+.replay .rp-dots i.in{background:#e8913a;border-color:#ffd08a;box-shadow:0 0 10px #ffb347}
+.replay .rp-dots i.out{background:#475569;border-color:#64748b}
+.replay .rp-skip{font-size:.8rem;opacity:.6}
+@media (prefers-reduced-motion:no-preference){.replay .rp-combo.bump{animation:bump .25s ease-out}.replay .rp-dots i.in{animation:bump .25s ease-out}}
+@keyframes bump{0%{transform:scale(1.5)}100%{transform:scale(1)}}
 .mute{background:none;border:1px solid currentColor;border-radius:999px;padding:2px 10px;font:inherit;color:inherit;cursor:pointer}
 </style>
 
@@ -150,7 +161,11 @@ function cloudSave(){
     catch (e) { setStatus("沒有網路，先存在這支手機，連上網後會再存"); }
   }, 800);
 }
-const save = () => { const n = S.current; if (n && S.players[n]) S.players[n]._t = Date.now();
+const snap = (o) => JSON.parse(JSON.stringify(o));
+function stash(){ if (!S.current || !S.players[S.current]) return;
+  if (view.name === "group" && G && G.id === `${view.week}-${view.gi}`) { const st = wk(view.week); st.drafts = st.drafts || {}; st.drafts["g" + view.gi] = snap(G); }
+  if (view.name === "quiz" && Q && Q.id === view.week) { const st = wk(view.week); st.drafts = st.drafts || {}; st.drafts.quiz = snap(Q); } }
+const save = () => { stash(); const n = S.current; if (n && S.players[n]) S.players[n]._t = Date.now();
   try { localStorage.setItem(KEY, JSON.stringify({ players:S.players, current:S.current })); } catch (e) {} cloudSave(); };
 const me = () => S.players[S.current];
 const wk = (w) => { const p = me(); p.weeks = p.weeks || {}; p.weeks[w] = p.weeks[w] || {groups:{}, quiz:null, goal:null}; return p.weeks[w]; };
@@ -176,6 +191,55 @@ document.addEventListener("pointerdown", (e) => {
   for (let k = 0; k < 5; k++) { const a = Math.PI * 2 * k / 5 + Math.random() * .6, r = 26 + Math.random() * 22;
     add("fx-petal", `--dx:${Math.cos(a) * r}px;--dy:${Math.sin(a) * r + 14}px;--r:${Math.random() * 360}deg;background:${k % 2 ? "#f4a7b0" : "#f9d0a0"}`); }
 }, { passive: true });
+
+// 籃球音效：空心進網、打鐵、終場蜂鳴器、觀眾歡呼
+function noiseBuf(d){ const n = AC.sampleRate * d, b = AC.createBuffer(1, n, AC.sampleRate), x = b.getChannelData(0); for (let i = 0; i < n; i++) x[i] = Math.random() * 2 - 1; return b; }
+function swish(t0, vol){ const s = AC.createBufferSource(); s.buffer = noiseBuf(.35); const bp = AC.createBiquadFilter(), g = AC.createGain(); bp.type = "bandpass"; bp.Q.value = 1.2;
+  const t = AC.currentTime + t0; bp.frequency.setValueAtTime(6000, t); bp.frequency.exponentialRampToValueAtTime(1200, t + .28);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol || .5, t + .03); g.gain.exponentialRampToValueAtTime(.001, t + .32);
+  s.connect(bp).connect(g).connect(AC.destination); s.start(t); s.stop(t + .36); }
+function clank(t0){ [523, 1380, 2210].forEach((f, i) => tone(f, t0, .22 - i * .05, "square", .05 - i * .012)); tone(140, t0 + .12, .12, "sine", .18, 70); }
+function buzzer(t0){ const t = AC.currentTime + t0, o = AC.createOscillator(), o2 = AC.createOscillator(), lp = AC.createBiquadFilter(), g = AC.createGain();
+  o.type = "sawtooth"; o2.type = "sawtooth"; o.frequency.value = 190; o2.frequency.value = 196; lp.type = "lowpass"; lp.frequency.value = 1400;
+  g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.16, t + .02); g.gain.setValueAtTime(.16, t + .85); g.gain.exponentialRampToValueAtTime(.001, t + 1);
+  o.connect(lp); o2.connect(lp); lp.connect(g).connect(AC.destination); o.start(t); o2.start(t); o.stop(t + 1.05); o2.stop(t + 1.05); }
+function cheer(t0){ const t = AC.currentTime + t0, s = AC.createBufferSource(); s.buffer = noiseBuf(2.6); const bp = AC.createBiquadFilter(), g = AC.createGain();
+  bp.type = "bandpass"; bp.frequency.value = 1300; bp.Q.value = .6; g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.32, t + .5); g.gain.exponentialRampToValueAtTime(.001, t + 2.5);
+  s.connect(bp).connect(g).connect(AC.destination); s.start(t); s.stop(t + 2.6);
+  [0, .35, .9].forEach((d) => { tone(2400, t0 + .3 + d, .18, "sine", .05, 2900); }); }
+function bell(t0){ // 上課鐘聲（西敏寺鐘聲前兩句）
+  const N = { E4:329.6, Fs4:370, Gs4:415.3, B3:246.9 };
+  [["Gs4",0],["Fs4",1],["E4",2],["B3",3],["E4",4.6],["Gs4",5.6],["Fs4",6.6],["E4",7.6]].forEach(([n, k]) => {
+    const t = AC.currentTime + t0 + k * .55, f = N[n];
+    [[1, .12], [2.76, .04], [5.4, .015], [.5, .05]].forEach(([h, v]) => { const o = AC.createOscillator(), g = AC.createGain(); o.type = "sine"; o.frequency.value = f * h;
+      g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(v, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + 2.2);
+      o.connect(g).connect(AC.destination); o.start(t); o.stop(t + 2.3); }); }); }
+function sfx(kind, t0){ if (MUTE) return; try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume();
+  t0 = t0 || 0; if (kind === "swish") swish(t0); else if (kind === "clank") clank(t0); else if (kind === "buzzer") buzzer(t0); else if (kind === "cheer") cheer(t0); else if (kind === "bell") bell(t0);
+  else if (kind === "combo") [784, 988, 1175, 1568].forEach((f, i) => tone(f, t0 + i * .05, .12, "square", .04)); } catch (e) {} }
+// 交卷後的投籃重播：一題一題揭曉，連對累積連擊
+function replay(title, results, done){
+  const total = results.length, ov = $(`<div class="replay" role="dialog" aria-label="成績揭曉"><div class="rp-title">${esc(title)}</div><div class="rp-combo" aria-live="polite"></div>
+    <div class="rp-dots">${results.map(() => "<i></i>").join("")}</div><div class="rp-score">命中 0／${total}</div><div class="rp-skip">點一下跳過</div></div>`);
+  document.body.append(ov);
+  const dots = ov.querySelectorAll(".rp-dots i"), cb = ov.querySelector(".rp-combo"), sc = ov.querySelector(".rp-score");
+  const words = { 3:"3 連對！", 5:"5 連對！手感發燙", 8:"8 連對！停不下來", 10:"10 連對！無人能擋", 15:"15 連對！傳奇射手", 20:"20 連對！完美球季" };
+  let i = 0, hit = 0, combo = 0, best = 0, timer = null, finished = false;
+  const finish = () => { if (finished) return; finished = true; clearInterval(timer);
+    results.forEach((r, k) => dots[k].className = r ? "in" : "out"); hit = results.filter(Boolean).length; sc.textContent = `命中 ${hit}／${total}　最長連對 ${Math.max(best, combo)}`;
+    const perfect = hit === total; cb.textContent = perfect ? "全中！" : hit / total >= .75 ? "好球！" : "再練一次！";
+    sfx("buzzer"); if (perfect) sfx("cheer", .5);
+    setTimeout(() => { ov.remove(); done && done(perfect); }, perfect ? 2600 : 1500); };
+  ov.onclick = () => { if (!finished) { finish(); } else { ov.remove(); } };
+  timer = setInterval(() => {
+    if (i >= total) return finish();
+    const r = results[i]; dots[i].className = r ? "in" : "out";
+    if (r) { hit++; combo++; best = Math.max(best, combo); sfx("swish");
+      if (words[combo]) { cb.textContent = words[combo]; cb.classList.remove("bump"); void cb.offsetWidth; cb.classList.add("bump"); sfx("combo", .12); } }
+    else { combo = 0; cb.textContent = ""; sfx("clank"); }
+    sc.textContent = `命中 ${hit}／${total}`; i++;
+  }, 260);
+}
 
 function beep(kind){
   if (MUTE) return;
@@ -246,7 +310,7 @@ function renderPlayers(app){
       S.players[n] = (cloud && (!local || (cloud._t || 0) >= (local._t || 0))) ? cloud : (local || { weeks:{} });
       CLOUD.pw[n] = pw; CLOUD.role[n] = r.role || "";
       try { localStorage.setItem(KEY + ":h:" + n, hashPw(pw)); } catch (x) {}
-      S.current = n; save(); render();
+      S.current = n; save(); render(); sfx("bell");
     } catch (x) {
       let h = null; try { h = localStorage.getItem(KEY + ":h:" + n); } catch (y) {}
       if (h && h === hashPw(pw) && S.players[n]) { CLOUD.pw[n] = pw; S.current = n; render(); setStatus("沒有網路，先用這支手機上的進度"); }
@@ -318,7 +382,7 @@ function renderHome(app){
   const grid = $(`<div class="missions"></div>`);
   B.groups.forEach((g, i) => { const r = st.groups[i] || {};
     const m = $(`<button class="mission ${r.done ? "done" : ""}"><span class="no">${esc(g.no)}</span><span class="t">${esc(g.skill)}</span><span class="s">主篇：${esc(g.parts[0].title)}｜5 篇 20 題</span>
-      <span class="st">${r.done ? `${shiba("")}完成，第一次對 ${r.first} 題` : r.first != null ? `第一次對 ${r.first} 題，還沒全對` : "還沒開始"}</span></button>`);
+      <span class="st">${r.done ? `${shiba("")}完成，第一次對 ${r.first} 題` : r.first != null ? `第一次對 ${r.first} 題，還沒全對` : (st.drafts && st.drafts["g" + i] && Object.keys(st.drafts["g" + i].ans).length) ? `作答中 ${Object.keys(st.drafts["g" + i].ans).length}／20（已暫存）` : "還沒開始"}</span></button>`);
     m.onclick = () => { view = {name:"group", week:w, gi:i}; render(); }; grid.append(m); });
   const q = st.quiz;
   const qm = $(`<button class="mission quiz"><span class="no">週日 ${DATES[w][1]}</span><span class="t">第 ${w} 週週考${w === 4 ? "（關卡考）" : ""}</span><span class="s">字義 10＋名句 5＋技巧題 10，共 100 分</span>
@@ -416,7 +480,7 @@ function mcqEl(q, k, state, no){
   q.opts.forEach((o, i) => {
     const b = $(`<button class="opt" aria-pressed="${chosen === L[i]}">(${L[i]}) ${esc(o)}</button>`);
     if (locked) { b.disabled = true; if (L[i] === q.ans) b.classList.add("right"); else if (chosen === L[i]) b.classList.add("wrong"); }
-    b.onclick = () => { if (locked) return; beep("tap"); state.ans[k] = L[i]; el.querySelectorAll(".opt").forEach((x, j) => x.setAttribute("aria-pressed", j === i)); };
+    b.onclick = () => { if (locked) return; beep("tap"); state.ans[k] = L[i]; save(); el.querySelectorAll(".opt").forEach((x, j) => x.setAttribute("aria-pressed", j === i)); };
     el.querySelector(".opts").append(b);
   });
   if (graded && state.locked[k] && state.ans[k] !== q.ans) {
@@ -428,7 +492,7 @@ function mcqEl(q, k, state, no){
 let G = null; // 目前作答狀態
 function renderGroup(app){
   const {week:w, gi} = view, B = DATA[w-1], g = B.groups[gi], st = wk(w);
-  if (!G || G.id !== `${w}-${gi}`) G = {id:`${w}-${gi}`, ans:{}, locked:{}, graded:false, round:0};
+  if (!G || G.id !== `${w}-${gi}`) G = (st.drafts && st.drafts["g" + gi]) ? snap(st.drafts["g" + gi]) : {id:`${w}-${gi}`, ans:{}, locked:{}, graded:false, round:0};
   const back = $(`<button class="back">← 回任務板</button>`); back.onclick = () => { G = null; view = {name:"home", week:w}; render(); };
   app.append(back);
   app.append($(`<div><h2>${esc(g.no)}｜${esc(g.skill)}</h2><div class="muted small">5 篇 20 題。全部按完再交卷；錯的會告訴你為什麼，改到全對就能蓋章。</div></div>`));
@@ -456,14 +520,18 @@ function renderGroup(app){
       const right = items.filter(([q,k]) => G.ans[k] === q.ans).length;
       const rec = st.groups[gi] = st.groups[gi] || {};
       if (rec.first == null) rec.first = right;
-      if (right === 20) { rec.done = true; beep("stamp"); } else beep(right >= 15 ? "ok" : "no");
+      if (right === 20) rec.done = true;
       save(); render();
+      replay(`${g.no}｜交卷`, items.map(([q,k]) => G.ans[k] === q.ans), (p) => { if (p) beep("stamp"); });
     };
     act.append(sub);
+    const keep = $(`<button class="btn alt">暫存</button>`);
+    keep.onclick = () => { save(); keep.textContent = "已暫存，下次進來會接著做"; setTimeout(() => { keep.textContent = "暫存"; }, 2500); };
+    act.append(keep);
   } else {
     const right = items.filter(([q,k]) => G.ans[k] === q.ans).length;
     if (right < 20) { const again = $(`<button class="btn alt">錯的再做一次</button>`);
-      again.onclick = () => { items.forEach(([q,k]) => { if (G.ans[k] !== q.ans) { delete G.ans[k]; G.locked[k] = false; } }); G.graded = false; render(); }; act.append(again); }
+      again.onclick = () => { items.forEach(([q,k]) => { if (G.ans[k] !== q.ans) { delete G.ans[k]; G.locked[k] = false; } }); G.graded = false; save(); render(); }; act.append(again); }
     else { const home = $(`<button class="btn alt">回任務板</button>`); home.onclick = () => { G = null; view = {name:"home", week:w}; render(); }; act.append(home); }
   }
   app.append(act);
@@ -482,7 +550,7 @@ function quizSet(w){
 }
 function renderQuiz(app){
   const w = view.week, B = DATA[w-1], st = wk(w);
-  if (!Q || Q.id !== w) Q = {id:w, ans:{}, locked:{}, fill:{}, graded:false, started:false};
+  if (!Q || Q.id !== w) Q = (st.drafts && st.drafts.quiz) ? snap(st.drafts.quiz) : {id:w, ans:{}, locked:{}, fill:{}, graded:false, started:false};
   const back = $(`<button class="back">← 回任務板</button>`); back.onclick = () => { Q = null; view = {name:"home", week:w}; render(); };
   app.append(back);
   app.append($(`<div><h2>第 ${w} 週週考${w === 4 ? "（小六上關卡考）" : ""}</h2><div class="muted small">字義每題 3 分、名句每題 4 分、技巧題每題 5 分，共 100 分。第一次交卷的分數就是本週成績。</div></div>`));
@@ -499,7 +567,7 @@ function renderQuiz(app){
     const row = $(`<div class="q"><div class="qt">${i+1}. ${esc(a)}＿＿＿＿</div><input class="fill" id="fill-${w}-${i}" autocomplete="off" value="${esc(Q.fill[k] || "")}"></div>`);
     const inp = row.querySelector("input");
     if (Q.locked[k]) { const ok = norm(Q.fill[k]) === norm(b); inp.classList.add(ok ? "right" : "wrong"); inp.disabled = true; if (!ok) row.append($(`<div class="why">正確：${esc(a + b)}</div>`)); }
-    inp.oninput = () => { Q.fill[k] = inp.value; };
+    inp.oninput = () => { Q.fill[k] = inp.value; save(); };
     s2.append(row); });
   app.append(s2);
   let n = 1; const s3h = $(`<div><h3>三、新篇章技巧題（每題 5 分）</h3></div>`); app.append(s3h);
@@ -518,7 +586,7 @@ function renderQuiz(app){
       <div class="small muted">截圖這張卡給媽媽看。</div></div>`));
     if (now < 100) { const again = $(`<button class="btn alt">錯的再考一次</button>`);
       again.onclick = () => { items.forEach(([qq,k]) => { if (Q.ans[k] !== qq.ans) { delete Q.ans[k]; Q.locked[k] = false; } });
-        B.quiz.lines.forEach(([a,b],i) => { const k = `l${i}`; if (norm(Q.fill[k]) !== norm(b)) { Q.fill[k] = ""; Q.locked[k] = false; } }); Q.graded = false; render(); }; act.append(again); }
+        B.quiz.lines.forEach(([a,b],i) => { const k = `l${i}`; if (norm(Q.fill[k]) !== norm(b)) { Q.fill[k] = ""; Q.locked[k] = false; } }); Q.graded = false; save(); render(); }; act.append(again); }
   } else {
     const sub = $(`<button class="btn">交卷</button>`);
     sub.onclick = () => {
@@ -526,9 +594,13 @@ function renderQuiz(app){
       Q.graded = true; const sc = score();
       if (!st.quiz) st.quiz = {first:sc, reward:reward(sc), retake:false};
       else if (st.quiz.first < 80 && sc >= 80 && !st.quiz.retake) { st.quiz.retake = true; st.quiz.reward = 50; }
-      beep(sc === 100 ? "win" : sc >= 80 ? "ok" : "no"); save(); render();
+      save(); render();
+      replay(`第 ${w} 週週考｜${sc} 分`, items.map(([qq,k]) => Q.ans[k] === qq.ans).concat(B.quiz.lines.map(([a,b],i) => norm(Q.fill[`l${i}`]) === norm(b))), (p) => { if (p) beep("win"); });
     };
     act.append(sub);
+    const keep = $(`<button class="btn alt">暫存</button>`);
+    keep.onclick = () => { save(); keep.textContent = "已暫存，下次進來會接著做"; setTimeout(() => { keep.textContent = "暫存"; }, 2500); };
+    act.append(keep);
   }
   app.append(act);
 }
