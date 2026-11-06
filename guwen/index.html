@@ -125,6 +125,9 @@ input.fill.right{border-color:var(--ok)} input.fill.wrong{border-color:var(--bad
 .replay .rp-skip{font-size:.8rem;opacity:.6}
 @media (prefers-reduced-motion:no-preference){.replay .rp-combo.bump{animation:bump .25s ease-out}.replay .rp-dots i.in{animation:bump .25s ease-out}}
 @keyframes bump{0%{transform:scale(1.5)}100%{transform:scale(1)}}
+.money th,.money td{white-space:nowrap;padding:6px 8px}
+.prog{background:var(--paper,#fff7ee);border-radius:12px;padding:12px 14px;margin:6px 0 10px}.prog-head{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}.prog-head b{font-size:1.6rem;color:#c2410c}
+.prog-bar{height:12px;border-radius:999px;background:rgba(0,0,0,.08);overflow:hidden;margin:8px 0 6px}.prog-bar i{display:block;height:100%;background:linear-gradient(90deg,#f59e0b,#e8913a);border-radius:999px}
 .mute{background:none;border:1px solid currentColor;border-radius:999px;padding:2px 10px;font:inherit;color:inherit;cursor:pointer}
 </style>
 
@@ -395,11 +398,22 @@ function renderHome(app){
 function moneyPanel(){
   const p = me(); p.payout = p.payout || null; p.paid = p.paid || {};
   const rows = DATA.map((d) => { const w = d.week, st = wk(w), m = weekMoney(w), q = st.quiz;
-    return `<tr><td>第 ${w} 週</td><td>${q ? q.first + " 分" : "未考"}</td><td>${st.goal ? st.goal + " 元" : "—"}</td><td><b>${m} 元</b></td><td>${st.goal ? (q ? (m >= st.goal ? "達成" : "差 " + (st.goal - m) + " 元") : "—") : "—"}</td><td><button class="chip paid" data-w="${w}" aria-pressed="${!!p.paid[w]}">${p.paid[w] ? "已領" : "未領"}</button></td></tr>`; }).join("");
+    const sc = d.groups.filter((g, i) => st.groups[i] && st.groups[i].done).length;
+    return `<tr><td>第 ${w} 週</td><td>${sc}／6</td><td>${q ? q.first + " 分" : "未考"}</td><td>${st.goal ? st.goal + " 元" : "—"}</td><td><b>${m} 元</b></td><td>${st.goal ? (q ? (m >= st.goal ? "達成" : "差 " + (st.goal - m) + " 元") : "—") : "—"}</td><td><button class="chip paid" data-w="${w}" aria-pressed="${!!p.paid[w]}">${p.paid[w] ? "已領" : "未領"}</button></td></tr>`; }).join("");
   const total = DATA.reduce((s, d) => s + weekMoney(d.week), 0);
   const paid = DATA.reduce((s, d) => s + (p.paid[d.week] ? weekMoney(d.week) : 0), 0);
+  const stampsDone = DATA.reduce((s, d) => s + d.groups.filter((g, i) => (wk(d.week).groups[i] || {}).done).length, 0), stampsAll = DATA.reduce((s, d) => s + d.groups.length, 0);
+  const quizDone = DATA.filter((d) => wk(d.week).quiz).length;
+  const left = Math.min(1000 - total, DATA.reduce((s, d) => { const st = wk(d.week), m = weekMoney(d.week), all = d.groups.every((g, i) => st.groups[i] && st.groups[i].done); return s + (st.quiz ? (all ? 0 : 50) : 250 - m); }, 0));
+  const pct = Math.min(100, Math.round(total / 10));
+  const cw = curWeek(), cst = wk(cw), cs = DATA[cw-1].groups.filter((g, i) => (cst.groups[i] || {}).done).length;
+  const nowTip = `<div class="small" style="margin-top:6px">第 ${cw} 週進度：柴犬章 ${cs}／6${cs < 6 ? `，再蓋 ${6 - cs} 枚＋錄一支影片就有全勤 50 元` : "，全勤 50 元到手（記得錄影片）"}；${cst.quiz ? `週考 ${cst.quiz.first} 分，拿 ${cst.quiz.reward} 元` : "週日週考 100 分可拿 200 元"}。</div>`;
   const el = $(`<div class="panel"><h3>獎金總覽（第 1～4 週為一期）</h3>
-    <div class="chart"><table><thead><tr><th>週次</th><th>週考</th><th>目標</th><th>獎金</th><th>目標達成</th><th>領取</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="prog"><div class="prog-head"><span>目前累計</span><b>${total} 元</b><span class="muted">／1000 元</span></div>
+      <div class="prog-bar" role="progressbar" aria-valuenow="${total}" aria-valuemin="0" aria-valuemax="1000"><i style="width:${pct}%"></i></div>
+      <div class="small">已完成：柴犬章 ${stampsDone}／${stampsAll} 枚、週考 ${quizDone}／${DATA.length} 次　這一期還能再拿最多 <b>${left} 元</b></div>
+      ${nowTip}</div>
+    <div class="chart"><table class="money"><thead><tr><th>週次</th><th>柴犬章</th><th>週考</th><th>目標</th><th>獎金</th><th>目標達成</th><th>領取</th></tr></thead><tbody>${rows}</tbody></table></div>
     <p style="margin:8px 0 4px">本期累計 <span class="score">${total}</span> 元（最多 1000 元）　已領 <span class="score">${paid}</span> 元　還沒領 <span class="score">${total - paid}</span> 元</p>
     <div class="goal"><span class="small">領獎方式：</span></div></div>`);
   ["每週領","每 4 週領","每 8 週領"].forEach((t) => { const c = $(`<button class="chip" aria-pressed="${p.payout === t}">${t}</button>`); c.onclick = () => { p.payout = t; save(); render(); }; el.querySelector(".goal").append(c); });
