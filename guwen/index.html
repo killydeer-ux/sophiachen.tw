@@ -14,7 +14,7 @@
 /* 版面：球場戰術板。頂部記分板，下面是一張張任務卡；作答區像戰術手冊，文言原文用襯線字。 */
 :root{
   --bg:#EEF2F6; --panel:#FFFFFF; --ink:#13233A; --muted:#5A6B80; --line:#C9D3DE;
-  --court:#2C6A9A; --ball:#E0702A; --ballSoft:#FCE9DC; --paper:#FFF9EF;
+  --court:#2C6A9A; --ball:#E0702A; --ballSoft:#FCE9DC; --paper:#FFF9EF; --okBg:#ECFDF5; --okInk:#065F46; --okLine:#6EE7B7; --noteBg:#FFF1D6; --noteInk:#9A3412; --track:rgba(19,35,58,.12); --accent2:#C2410C;
   --ok:#1E7A46; --okSoft:#E2F3E8; --bad:#B23A3A; --badSoft:#F9E3E3;
   --f-display:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
   --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
@@ -23,11 +23,11 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0F1724; --panel:#182334; --ink:#E6EDF5; --muted:#9AAABD; --line:#2D3B50;
-  --court:#6FA8D6; --ball:#F08A48; --ballSoft:#3A2618; --paper:#1F2A3B;
+  --court:#6FA8D6; --ball:#F08A48; --ballSoft:#3A2618; --paper:#1F2A3B; --okBg:#0F2E25; --okInk:#A7F3D0; --okLine:#2F7A5F; --noteBg:#3A2A12; --noteInk:#FCD9A8; --track:rgba(230,237,245,.18); --accent2:#FDBA74;
   --ok:#5CC98A; --okSoft:#163325; --bad:#F07C7C; --badSoft:#3A1C1F; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0F1724; --panel:#182334; --ink:#E6EDF5; --muted:#9AAABD; --line:#2D3B50;
-  --court:#6FA8D6; --ball:#F08A48; --ballSoft:#3A2618; --paper:#1F2A3B;
+  --court:#6FA8D6; --ball:#F08A48; --ballSoft:#3A2618; --paper:#1F2A3B; --okBg:#0F2E25; --okInk:#A7F3D0; --okLine:#2F7A5F; --noteBg:#3A2A12; --noteInk:#FCD9A8; --track:rgba(230,237,245,.18); --accent2:#FDBA74;
   --ok:#5CC98A; --okSoft:#163325; --bad:#F07C7C; --badSoft:#3A1C1F; color-scheme:dark}
 html,body{background:var(--bg)}
 body{color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.65;
@@ -72,9 +72,9 @@ details.teach summary{font-weight:700;cursor:pointer}
 .text{font-family:var(--f-text);font-size:1.12rem;line-height:1.9;background:var(--paper);border-radius:10px;padding:12px 14px}
 .cite{font-size:.8rem;color:var(--muted);text-align:right}
 .notes{font-size:.88rem;color:var(--muted)}
-.nt{display:inline;vertical-align:baseline;font:inherit;color:#b45309;background:#fff1d6;border:0;border-bottom:2px dotted #d97706;border-radius:3px;padding:0 1px;margin:0;cursor:pointer;line-height:inherit}
+.nt{display:inline;vertical-align:baseline;font:inherit;color:var(--noteInk);background:var(--noteBg);border:0;border-bottom:2px dotted #d97706;border-radius:3px;padding:0 1px;margin:0;cursor:pointer;line-height:inherit}
 .ntip{position:absolute;z-index:80;max-width:220px;background:#1f2937;color:#fff;font-size:.9rem;padding:6px 10px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.2)}
-.notes .nk{color:#b45309;font-weight:700}
+.notes .nk{color:var(--noteInk);font-weight:700}
 
 .chart{overflow-x:auto}
 .chart table{border-collapse:collapse;width:100%;font-size:.92rem}
@@ -129,18 +129,18 @@ input.fill.right{border-color:var(--ok)} input.fill.wrong{border-color:var(--bad
 .replay .rp-skip{font-size:.8rem;opacity:.6}
 @media (prefers-reduced-motion:no-preference){.replay .rp-combo.bump{animation:bump .25s ease-out}.replay .rp-dots i.in{animation:bump .25s ease-out}}
 @keyframes bump{0%{transform:scale(1.5)}100%{transform:scale(1)}}
-.mini{display:inline-flex;gap:2px;vertical-align:middle}.mini i{width:9px;height:9px;border-radius:50%;background:rgba(0,0,0,.12);display:block}.mini i.on{background:#e8913a}
-.paidtag{display:inline-block;padding:2px 10px;border-radius:999px;border:1px solid rgba(0,0,0,.2);font-size:.85rem}.paidtag.on{background:#dcfce7;border-color:#16a34a;color:#166534;font-weight:700}
-.claim{background:#ecfdf5;border:1px solid #6ee7b7;border-radius:12px;padding:10px 14px;margin:0 0 10px}.claim b{font-size:1.5rem;color:#047857}
-.wall .wsum{font-size:1.05rem;margin:2px 0 10px}.wall .wsum b{font-size:1.5rem;color:#c2410c}
-.wrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px dashed rgba(0,0,0,.1)}
+.mini{display:inline-flex;gap:2px;vertical-align:middle}.mini i{width:9px;height:9px;border-radius:50%;background:var(--track);display:block}.mini i.on{background:#e8913a}
+.paidtag{display:inline-block;padding:2px 10px;border-radius:999px;border:1px solid var(--line);font-size:.85rem}.paidtag.on{background:var(--okBg);border-color:var(--okLine);color:var(--okInk);font-weight:700}
+.claim{background:var(--okBg);color:var(--okInk);border:1px solid var(--okLine);border-radius:12px;padding:10px 14px;margin:0 0 10px}.claim b{font-size:1.5rem;color:var(--okInk)}.claim .small{color:var(--okInk);opacity:.9}
+.wall .wsum{font-size:1.05rem;margin:2px 0 10px}.wall .wsum b{font-size:1.5rem;color:var(--accent2)}
+.wrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px dashed var(--line)}
 .wlab{width:4.2em;font-weight:700}.wicons{display:flex;gap:4px;flex-wrap:wrap}
 .ws{width:40px;height:40px;padding:0;border:0;background:none;cursor:pointer;line-height:0}.ws svg{width:100%;height:100%}.ws.off{opacity:.22;filter:grayscale(1);cursor:default}
 @media (prefers-reduced-motion:no-preference){.ws:not(.off):hover{transform:scale(1.12) rotate(-6deg)}}
 .medal{display:inline-flex;flex-direction:column;align-items:center;font-size:.7rem;line-height:1.1}.medal svg{width:34px;height:40px}
 .money th,.money td{white-space:nowrap;padding:6px 8px}
-.prog{background:var(--paper,#fff7ee);border-radius:12px;padding:12px 14px;margin:6px 0 10px}.prog-head{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}.prog-head b{font-size:1.6rem;color:#c2410c}
-.prog-bar{height:12px;border-radius:999px;background:rgba(0,0,0,.08);overflow:hidden;margin:8px 0 6px}.prog-bar i{display:block;height:100%;background:linear-gradient(90deg,#f59e0b,#e8913a);border-radius:999px}
+.prog{background:var(--paper,#fff7ee);border-radius:12px;padding:12px 14px;margin:6px 0 10px}.prog-head{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}.prog-head b{font-size:1.6rem;color:var(--accent2)}
+.prog-bar{height:12px;border-radius:999px;background:var(--track);overflow:hidden;margin:8px 0 6px}.prog-bar i{display:block;height:100%;background:linear-gradient(90deg,#f59e0b,#e8913a);border-radius:999px}
 .mute{background:none;border:1px solid currentColor;border-radius:999px;padding:2px 10px;font:inherit;color:inherit;cursor:pointer}
 </style>
 
