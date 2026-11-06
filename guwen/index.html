@@ -72,6 +72,10 @@ details.teach summary{font-weight:700;cursor:pointer}
 .text{font-family:var(--f-text);font-size:1.12rem;line-height:1.9;background:var(--paper);border-radius:10px;padding:12px 14px}
 .cite{font-size:.8rem;color:var(--muted);text-align:right}
 .notes{font-size:.88rem;color:var(--muted)}
+.nt{display:inline;vertical-align:baseline;font:inherit;color:#b45309;background:#fff1d6;border:0;border-bottom:2px dotted #d97706;border-radius:3px;padding:0 1px;margin:0;cursor:pointer;line-height:inherit}
+.ntip{position:absolute;z-index:80;max-width:220px;background:#1f2937;color:#fff;font-size:.9rem;padding:6px 10px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.notes .nk{color:#b45309;font-weight:700}
+
 .chart{overflow-x:auto}
 .chart table{border-collapse:collapse;width:100%;font-size:.92rem}
 .chart td,.chart th{border-bottom:1px solid var(--line);padding:4px 8px;text-align:left;font-variant-numeric:tabular-nums}
@@ -353,7 +357,7 @@ function renderParent(app){
       const wm = DATA.map((d) => ({ w:d.week, m:weekMoney(d.week), paid:!!((p.data || {}).paid || {})[d.week] }));
       S.current = keep; if (keepP) S.players[p.name] = keepP; else delete S.players[p.name];
       const card = $(`<div class="q"><b>${esc(p.name)}</b>${money}<div class="small">${line}　柴犬章 ${sm.stamps} 枚</div>
-        ${rw ? `<div class="goal" style="margin-top:6px"><span class="small">發獎金：</span>${wm.map((x) => `<button class="chip pay" data-w="${x.w}" aria-pressed="${x.paid}">第 ${x.w} 週 ${x.m} 元｜${x.paid ? "已領" : "未領"}</button>`).join("")}</div>` : ""}</div>`);
+        ${rw ? `<div class="goal" style="margin-top:6px"><span class="small">發獎金（點一下切換「累積到下次領」／「這次領」）：</span>${wm.map((x) => `<button class="chip pay" data-w="${x.w}" aria-pressed="${x.paid}">第 ${x.w} 週 ${x.m} 元｜${x.paid ? "這次領 ✓" : "累積到下次領"}</button>`).join("")}</div>` : ""}</div>`);
       card.querySelectorAll(".pay").forEach((b) => b.onclick = async () => {
         const w = b.dataset.w, now = b.getAttribute("aria-pressed") !== "true";
         const paidTotal = wm.reduce((t, x) => t + ((String(x.w) === w ? now : x.paid) ? x.m : 0), 0);
@@ -435,11 +439,29 @@ function stampWall(){
     ov.onclick = () => ov.remove(); document.body.append(ov); beep("bark"); });
   return el;
 }
+function noteList(notes){ return String(notes || "").split(/[　\s]+/).map((x) => { const i = x.search(/[：:]/); return i > 0 ? [x.slice(0, i), x.slice(i + 1)] : null; }).filter(Boolean); }
+// 原文裡有注釋的字換顏色，點一下看注釋
+function markNotes(paras, notes){
+  const list = noteList(notes).sort((a, b) => b[0].length - a[0].length), used = new Set();
+  return paras.map((t) => { t = String(t); const hits = [];
+    list.forEach(([k, v]) => { if (used.has(k)) return; let i = t.indexOf(k);
+      while (i >= 0 && hits.some((h) => i < h.e && i + k.length > h.s)) i = t.indexOf(k, i + 1);
+      if (i >= 0) { hits.push({ s:i, e:i + k.length, k, v }); used.add(k); } });
+    hits.sort((a, b) => a.s - b.s); let out = "", p = 0;
+    hits.forEach((h) => { out += esc(t.slice(p, h.s)) + `<button type="button" class="nt" data-note="${esc(h.k + "：" + h.v)}">${esc(h.k)}</button>`; p = h.e; });
+    return out + esc(t.slice(p)); });
+}
+function noteTip(e){ const b = e.target.closest(".nt"); if (!b) return; e.preventDefault();
+  document.querySelectorAll(".ntip").forEach((x) => x.remove());
+  const r = b.getBoundingClientRect(), tip = $(`<div class="ntip" role="status">${esc(b.dataset.note)}</div>`);
+  tip.style.left = Math.max(8, Math.min(innerWidth - 228, r.left + scrollX - 20)) + "px"; tip.style.top = (r.bottom + scrollY + 6) + "px";
+  document.body.append(tip); setTimeout(() => tip.remove(), 3000); }
+document.addEventListener("click", noteTip);
 function moneyPanel(){
   const p = me(); p.payout = p.payout || null; p.paid = p.paid || {};
   const rows = DATA.map((d) => { const w = d.week, st = wk(w), m = weekMoney(w), q = st.quiz;
     const sc = d.groups.filter((g, i) => st.groups[i] && st.groups[i].done).length;
-    return `<tr><td>第 ${w} 週</td><td><span class="mini">${d.groups.map((g, i) => `<i class="${(st.groups[i] || {}).done ? "on" : ""}"></i>`).join("")}</span> ${sc}／6</td><td>${q ? q.first + " 分" : "未考"}</td><td>${st.goal ? st.goal + " 元" : "—"}</td><td><b>${m} 元</b></td><td>${st.goal ? (q ? (m >= st.goal ? "達成" : "差 " + (st.goal - m) + " 元") : "—") : "—"}</td><td>${p.paid[w] ? `<span class="paidtag on">已領</span>` : `<span class="paidtag">未領</span>`}</td></tr>`; }).join("");
+    return `<tr><td>第 ${w} 週</td><td><span class="mini">${d.groups.map((g, i) => `<i class="${(st.groups[i] || {}).done ? "on" : ""}"></i>`).join("")}</span> ${sc}／6</td><td>${q ? q.first + " 分" : "未考"}</td><td>${st.goal ? st.goal + " 元" : "—"}</td><td><b>${m} 元</b></td><td>${st.goal ? (q ? (m >= st.goal ? "達成" : "差 " + (st.goal - m) + " 元") : "—") : "—"}</td><td>${p.paid[w] ? `<span class="paidtag on">已領</span>` : `<span class="paidtag">累積到下次領</span>`}</td></tr>`; }).join("");
   const total = DATA.reduce((s, d) => s + weekMoney(d.week), 0);
   const paid = DATA.reduce((s, d) => s + (p.paid[d.week] ? weekMoney(d.week) : 0), 0);
   const stampsDone = DATA.reduce((s, d) => s + d.groups.filter((g, i) => (wk(d.week).groups[i] || {}).done).length, 0), stampsAll = DATA.reduce((s, d) => s + d.groups.length, 0);
@@ -454,8 +476,8 @@ function moneyPanel(){
       <div class="small">已完成：柴犬章 ${stampsDone}／${stampsAll} 枚、週考 ${quizDone}／${DATA.length} 次　這一期還能再拿最多 <b>${left} 元</b></div>
       ${nowTip}</div>
     <div class="chart"><table class="money"><thead><tr><th>週次</th><th>柴犬章</th><th>週考</th><th>目標</th><th>獎金</th><th>目標達成</th><th>領取</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <p style="margin:8px 0 4px">本期累計 <span class="score">${total}</span> 元（最多 1000 元）　已領 <span class="score">${paid}</span> 元　還沒領 <span class="score">${total - paid}</span> 元</p>
-    <div class="small muted">「已領」由媽媽確認後在家長頁打勾。</div>
+    <p style="margin:8px 0 4px">本期累計 <span class="score">${total}</span> 元（最多 1000 元）　已領 <span class="score">${paid}</span> 元　累積待領 <span class="score">${total - paid}</span> 元</p>
+    <div class="small muted">每週獎金先「累積到下次領」，媽媽發錢時在家長頁改成「這次領」。</div>
     <div class="goal"><span class="small">領獎方式：</span></div></div>`);
   ["每週領","每 4 週領","每 8 週領"].forEach((t) => { const c = $(`<button class="chip" aria-pressed="${p.payout === t}">${t}</button>`); c.onclick = () => { p.payout = t; save(); render(); }; el.querySelector(".goal").append(c); });
   return el;
@@ -520,10 +542,10 @@ function passageEl(p, n){
     el.append($(`<div class="chart"><table><thead><tr><th>${esc(head[0])}</th><th>${esc(head[1])}</th><th></th></tr></thead><tbody>${p.data.map(([k,v]) => `<tr><td>${esc(k)}</td><td>${v}</td><td><span class="bar" style="width:${Math.round(v/mx*100)}%"></span></td></tr>`).join("")}</tbody></table></div>`));
     (p.text || []).filter(Boolean).forEach((t) => el.append($(`<div class="text" style="font-family:var(--f-body);font-size:1rem">${esc(t)}</div>`)));
   } else {
-    el.append($(`<div class="text">${p.text.map(esc).join("<br>")}</div>`));
+    el.append($(`<div class="text">${markNotes(p.text, p.notes).join("<br>")}</div>`));
   }
   el.append($(`<div class="cite">${esc(p.cite)}</div>`));
-  if (p.notes) el.append($(`<div class="notes">小注釋：${esc(p.notes)}</div>`));
+  if (p.notes) { const nl = noteList(p.notes); el.append($(`<div class="notes">小注釋：${nl.length ? nl.map(([k, v]) => `<span class="nk">${esc(k)}</span>：${esc(v)}`).join("　") : esc(p.notes)}</div>`)); }
   return el;
 }
 
