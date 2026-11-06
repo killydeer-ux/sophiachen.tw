@@ -270,7 +270,9 @@ function beep(kind){
   } catch (e) {}
 }
 
-function reward(score){ return score === 100 ? 200 : score >= 95 ? 150 : score >= 80 ? 100 : 0; }
+// 獎金規則（2026-11-06）：每組全對 25 元；週考 100 分 100 元、95～99 分 75 元、80～94 分 50 元、重考過 80 分 25 元；每週最多 250 元
+const PER_GROUP = 25;
+function reward(score){ return score === 100 ? 100 : score >= 95 ? 75 : score >= 80 ? 50 : 0; }
 
 function render(){
   const app = document.getElementById("app"); app.innerHTML = "";
@@ -412,7 +414,7 @@ function renderHome(app){
   app.append(tabs);
   const w = view.week, B = DATA[w-1], st = wk(w);
   const goal = $(`<div class="panel"><h3>我的本週獎金目標</h3><div class="goal" id="g"></div>
-    <p class="small muted" style="margin:8px 0 0">週考 100 分拿 200 元，95 分以上 150 元，80 分以上 100 元；6 組都蓋章再加 50 元。本週最多 250 元。</p></div>`);
+    <p class="small muted" style="margin:8px 0 0">每組全對蓋章就有 25 元（6 組 150 元）；週考 100 分 100 元、95 分以上 75 元、80 分以上 50 元。本週最多 250 元。</p></div>`);
   [250,200,150,100].forEach((v) => { const c = $(`<button class="chip" aria-pressed="${st.goal === v}">${v} 元</button>`);
     c.onclick = () => { st.goal = v; save(); render(); }; goal.querySelector("#g").append(c); });
   if (isParent()) { const pb = $(`<div class="panel row"><b>家長帳號</b><span class="small muted">您的進度也會存到雲端，可以先自己測試；孩子的進度不受影響。</span><button class="btn alt">看全部人的成績</button></div>`); pb.querySelector("button").onclick = () => { view = {name:"parent", week:view.week}; render(); }; app.append(pb); }
@@ -484,10 +486,10 @@ function moneyPanel(){
   const paid = DATA.reduce((s, d) => s + (p.paid[d.week] ? weekMoney(d.week) : 0), 0);
   const stampsDone = DATA.reduce((s, d) => s + d.groups.filter((g, i) => (wk(d.week).groups[i] || {}).done).length, 0), stampsAll = DATA.reduce((s, d) => s + d.groups.length, 0);
   const quizDone = DATA.filter((d) => wk(d.week).quiz).length;
-  const left = Math.min(1000 - total, DATA.reduce((s, d) => { const st = wk(d.week), m = weekMoney(d.week), all = d.groups.every((g, i) => st.groups[i] && st.groups[i].done); return s + (st.quiz ? (all ? 0 : 50) : 250 - m); }, 0));
+  const left = Math.min(1000 - total, DATA.reduce((s, d) => { const st = wk(d.week), done = d.groups.filter((g, i) => st.groups[i] && st.groups[i].done).length; return s + (6 - done) * PER_GROUP + (st.quiz ? 0 : 100); }, 0));
   const pct = Math.min(100, Math.round(total / 10));
   const cw = curWeek(), cst = wk(cw), cs = DATA[cw-1].groups.filter((g, i) => (cst.groups[i] || {}).done).length;
-  const nowTip = `<div class="small" style="margin-top:6px">第 ${cw} 週進度：柴犬章 ${cs}／6${cs < 6 ? `，再蓋 ${6 - cs} 枚＋錄一支影片就有全勤 50 元` : "，全勤 50 元到手（記得錄影片）"}；${cst.quiz ? `週考 ${cst.quiz.first} 分，拿 ${cst.quiz.reward} 元` : "週日週考 100 分可拿 200 元"}。</div>`;
+  const nowTip = `<div class="small" style="margin-top:6px">第 ${cw} 週進度：柴犬章 ${cs}／6，已賺 ${cs * PER_GROUP} 元${cs < 6 ? `，再蓋 ${6 - cs} 枚還有 ${(6 - cs) * PER_GROUP} 元` : "，練習的 150 元全拿到了"}；${cst.quiz ? `週考 ${cst.quiz.first} 分，拿 ${quizMoney(cst.quiz)} 元` : "週日週考 100 分再拿 100 元"}。</div>`;
   const el = $(`<div class="panel"><h3>獎金總覽（第 1～4 週為一期）</h3>
     <div class="prog"><div class="prog-head"><span>目前累計</span><b>${total} 元</b><span class="muted">／1000 元</span></div>
       <div class="prog-bar" role="progressbar" aria-valuenow="${total}" aria-valuemin="0" aria-valuemax="1000"><i style="width:${pct}%"></i></div>
@@ -539,11 +541,10 @@ function boardPanel(w){
   return el;
 }
 
+function quizMoney(q){ return !q ? 0 : q.retake ? 25 : reward(q.first); }
 function weekMoney(w){
-  const st = wk(w), q = st.quiz; let m = 0;
-  if (q) m = q.reward || 0;
-  const all = DATA[w-1].groups.every((g, i) => st.groups[i] && st.groups[i].done);
-  return m + (all ? 50 : 0);
+  const st = wk(w), done = DATA[w-1].groups.filter((g, i) => st.groups[i] && st.groups[i].done).length;
+  return Math.min(250, done * PER_GROUP + quizMoney(st.quiz));
 }
 
 function teachEl(t, open){
@@ -599,7 +600,7 @@ function renderGroup(app){
   const done = items.filter(([q,k]) => G.locked[k]).length;
   if (G.graded) {
     const right = items.filter(([q,k]) => G.ans[k] === q.ans).length;
-    const r = $(`<div class="result pop"><div>這一輪</div><div class="big">${right}／20</div><div>${right === 20 ? "全對！蓋一枚柴犬章。" : "看完解析，按「錯的再做一次」，改到全對。"}</div>${right === 20 ? `<div class="bigstamp">${SHIBA}</div>` : ""}</div>`);
+    const r = $(`<div class="result pop"><div>這一輪</div><div class="big">${right}／20</div><div>${right === 20 ? `全對！蓋一枚柴犬章${rewarded() ? `，獎金 +${PER_GROUP} 元（本週已累積 ${weekMoney(w)} 元）` : ""}。` : "看完解析，按「錯的再做一次」，改到全對。"}</div>${right === 20 ? `<div class="bigstamp">${SHIBA}</div>` : ""}</div>`);
     app.append(r);
     if (right === 20 && B.daily[gi]) { const m = B.daily[gi]; app.append($(`<div class="memo"><b>今日背誦目標（明天早上抽背）</b>${m.words.map((x) => `<div>□ ${esc(x[0])}＝${esc(x[1])}（${esc(x[2])}）</div>`).join("")}<div>□ 名句：${esc(m.line)}</div></div>`)); }
   }
@@ -616,7 +617,7 @@ function renderGroup(app){
       if (rec.first == null) rec.first = right;
       if (right === 20) rec.done = true;
       save(); render();
-      replay(`${g.no}｜交卷`, items.map(([q,k]) => G.ans[k] === q.ans), (p) => { if (p) beep("stamp"); });
+      replay(`${g.no}｜交卷`, items.map(([q,k]) => G.ans[k] === q.ans), (p) => { if (p) { beep("stamp"); if (rewarded()) toast(`+${PER_GROUP} 元！本週已累積 ${weekMoney(w)} 元`); } });
     };
     act.append(sub);
     const keep = $(`<button class="btn alt">暫存</button>`);
@@ -675,7 +676,7 @@ function renderQuiz(app){
     const total = weekMoney(w);
     app.append($(`<div class="result pop"><div>${esc(S.current)}｜第 ${w} 週週考</div><div class="big">${q.first} 分</div>
       <div>這一輪：${now} 分${q.retake ? "（重考過 80 分）" : ""}</div>
-      ${rewarded() ? `<div>週考獎金 ${q.reward} 元＋全勤 ${all ? 50 : 0} 元＝<b>本週 ${total} 元</b></div>
+      ${rewarded() ? `<div>柴犬章 ${B.groups.filter((g, i) => st.groups[i] && st.groups[i].done).length} 枚 × 25 元＋週考 ${quizMoney(q)} 元＝<b>本週 ${total} 元</b></div>
       <div>本週目標 ${st.goal ? st.goal + " 元" : "未設定"}：${st.goal ? (total >= st.goal ? "達成！" : "還差 " + (st.goal - total) + " 元") : ""}</div>` : `<div>本週柴犬章 ${B.groups.filter((g, i) => st.groups[i] && st.groups[i].done).length}／6</div>`}
       <div class="small muted">截圖這張卡給媽媽看。</div></div>`));
     if (now < 100) { const again = $(`<button class="btn alt">錯的再考一次</button>`);
@@ -687,7 +688,7 @@ function renderQuiz(app){
       items.forEach(([q,k]) => { Q.locked[k] = true; }); B.quiz.lines.forEach((x,i) => { Q.locked[`l${i}`] = true; });
       Q.graded = true; const sc = score();
       if (!st.quiz) st.quiz = {first:sc, reward:reward(sc), retake:false};
-      else if (st.quiz.first < 80 && sc >= 80 && !st.quiz.retake) { st.quiz.retake = true; st.quiz.reward = 50; }
+      else if (st.quiz.first < 80 && sc >= 80 && !st.quiz.retake) { st.quiz.retake = true; st.quiz.reward = 25; }
       save(); render();
       replay(`第 ${w} 週週考｜${sc} 分`, items.map(([qq,k]) => Q.ans[k] === qq.ans).concat(B.quiz.lines.map(([a,b],i) => norm(Q.fill[`l${i}`]) === norm(b))), (p) => { if (p) beep("win"); });
     };
