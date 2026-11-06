@@ -131,6 +131,7 @@ input.fill.right{border-color:var(--ok)} input.fill.wrong{border-color:var(--bad
 @keyframes bump{0%{transform:scale(1.5)}100%{transform:scale(1)}}
 .mini{display:inline-flex;gap:2px;vertical-align:middle}.mini i{width:9px;height:9px;border-radius:50%;background:rgba(0,0,0,.12);display:block}.mini i.on{background:#e8913a}
 .paidtag{display:inline-block;padding:2px 10px;border-radius:999px;border:1px solid rgba(0,0,0,.2);font-size:.85rem}.paidtag.on{background:#dcfce7;border-color:#16a34a;color:#166534;font-weight:700}
+.claim{background:#ecfdf5;border:1px solid #6ee7b7;border-radius:12px;padding:10px 14px;margin:0 0 10px}.claim b{font-size:1.5rem;color:#047857}
 .wall .wsum{font-size:1.05rem;margin:2px 0 10px}.wall .wsum b{font-size:1.5rem;color:#c2410c}
 .wrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px dashed rgba(0,0,0,.1)}
 .wlab{width:4.2em;font-weight:700}.wicons{display:flex;gap:4px;flex-wrap:wrap}
@@ -354,16 +355,23 @@ function renderParent(app){
       const sm = summary(p.name);
       const line = DATA.map((d) => `第 ${d.week} 週 ${sm["w"+d.week] === "" ? "未考" : sm["w"+d.week] + " 分"}`).join("　");
       const rw = rewarded(), money = rw ? `　本期獎金 ${sm.money} 元（已領 ${sm.paid} 元）` : "";
-      const wm = DATA.map((d) => ({ w:d.week, m:weekMoney(d.week), paid:!!((p.data || {}).paid || {})[d.week] }));
+      const wm = DATA.map((d) => ({ w:d.week, m:weekMoney(d.week), paid:!!((p.data || {}).paid || {})[d.week], now:((p.data || {}).choice || {})[d.week] === "now" }));
+      const mm = {}; wm.forEach((x) => mm[x.w] = x.m); const ci = claimInfo(p.data, (w) => mm[w]);
       S.current = keep; if (keepP) S.players[p.name] = keepP; else delete S.players[p.name];
       const card = $(`<div class="q"><b>${esc(p.name)}</b>${money}<div class="small">${line}　柴犬章 ${sm.stamps} 枚</div>
-        ${rw ? `<div class="goal" style="margin-top:6px"><span class="small">發獎金（點一下切換「累積到下次領」／「這次領」）：</span>${wm.map((x) => `<button class="chip pay" data-w="${x.w}" aria-pressed="${x.paid}">第 ${x.w} 週 ${x.m} 元｜${x.paid ? "這次領 ✓" : "累積到下次領"}</button>`).join("")}</div>` : ""}</div>`);
+        ${rw ? `<div class="claim" style="margin-top:8px"><div>目前可領取 <b>${ci.can} 元</b>${ci.ready.length ? `（第 ${ci.ready.join("、")} 週）` : "（孩子還沒選「這次領」）"}</div><div class="small">累積中 ${ci.wait} 元</div>
+          ${ci.can > 0 ? `<button class="btn payall" style="margin-top:6px">發放 ${ci.can} 元，標記已領取</button>` : ""}</div>
+          <div class="goal"><span class="small">逐週狀態（點一下可更正）：</span>${wm.map((x) => `<button class="chip pay" data-w="${x.w}" aria-pressed="${x.paid}">第 ${x.w} 週 ${x.m} 元｜${x.paid ? "已領取 ✓" : x.now ? "選這次領" : "累積中"}</button>`).join("")}</div>` : ""}</div>`);
       card.querySelectorAll(".pay").forEach((b) => b.onclick = async () => {
         const w = b.dataset.w, now = b.getAttribute("aria-pressed") !== "true";
         const paidTotal = wm.reduce((t, x) => t + ((String(x.w) === w ? now : x.paid) ? x.m : 0), 0);
         b.disabled = true; b.textContent = "處理中…";
         try { const rr = await api({ action:"setPaid", name:S.current, pw:CLOUD.pw[S.current], user:p.name, week:w, paid:now, paidTotal });
           if (!rr.ok) { b.textContent = rr.error || "失敗"; return; } render(); } catch (x) { b.textContent = "連不上雲端"; } });
+      const pa = card.querySelector(".payall");
+      if (pa) pa.onclick = async () => { pa.disabled = true; pa.textContent = "處理中…"; let paidNow = wm.reduce((t, x) => t + (x.paid ? x.m : 0), 0);
+        try { for (const w of ci.ready) { paidNow += mm[w]; const rr = await api({ action:"setPaid", name:S.current, pw:CLOUD.pw[S.current], user:p.name, week:String(w), paid:true, paidTotal:paidNow }); if (!rr.ok) { pa.textContent = rr.error || "失敗"; return; } }
+          render(); } catch (x) { pa.textContent = "連不上雲端"; } };
       list.append(card);
     });
     if (!r.players.length) list.append($(`<p>還沒有人存過成績。</p>`));
@@ -457,12 +465,22 @@ function noteTip(e){ const b = e.target.closest(".nt"); if (!b) return; e.preven
   tip.style.left = Math.max(8, Math.min(innerWidth - 228, r.left + scrollX - 20)) + "px"; tip.style.top = (r.bottom + scrollY + 6) + "px";
   document.body.append(tip); setTimeout(() => tip.remove(), 3000); }
 document.addEventListener("click", noteTip);
+// 領取：孩子每週選「這次領」或「累積到下次領」；選這次領，那週和之前累積的都可以領
+function claimInfo(p, money){ p = p || {}; const paid = p.paid || {}, ch = p.choice || {};
+  let last = 0; DATA.forEach((d) => { if (ch[d.week] === "now" && !paid[d.week]) last = d.week; });
+  const ready = DATA.filter((d) => d.week <= last && !paid[d.week]).map((d) => d.week);
+  const can = ready.reduce((s, w) => s + money(w), 0);
+  const wait = DATA.filter((d) => d.week > last && !paid[d.week]).reduce((s, d) => s + money(d.week), 0);
+  return { ready, can, wait }; }
+function toast(t){ document.querySelectorAll(".ntip.toast").forEach((x) => x.remove()); const el = $(`<div class="ntip toast" role="status">${esc(t)}</div>`);
+  el.style.position = "fixed"; el.style.left = "50%"; el.style.bottom = "90px"; el.style.transform = "translateX(-50%)"; document.body.append(el); setTimeout(() => el.remove(), 2200); }
 function moneyPanel(){
-  const p = me(); p.payout = p.payout || null; p.paid = p.paid || {};
+  const p = me(); p.paid = p.paid || {}; p.choice = p.choice || {};
   const rows = DATA.map((d) => { const w = d.week, st = wk(w), m = weekMoney(w), q = st.quiz;
     const sc = d.groups.filter((g, i) => st.groups[i] && st.groups[i].done).length;
-    return `<tr><td>第 ${w} 週</td><td><span class="mini">${d.groups.map((g, i) => `<i class="${(st.groups[i] || {}).done ? "on" : ""}"></i>`).join("")}</span> ${sc}／6</td><td>${q ? q.first + " 分" : "未考"}</td><td>${st.goal ? st.goal + " 元" : "—"}</td><td><b>${m} 元</b></td><td>${st.goal ? (q ? (m >= st.goal ? "達成" : "差 " + (st.goal - m) + " 元") : "—") : "—"}</td><td>${p.paid[w] ? `<span class="paidtag on">已領</span>` : `<span class="paidtag">累積到下次領</span>`}</td></tr>`; }).join("");
+    return `<tr><td>第 ${w} 週</td><td><span class="mini">${d.groups.map((g, i) => `<i class="${(st.groups[i] || {}).done ? "on" : ""}"></i>`).join("")}</span> ${sc}／6</td><td>${q ? q.first + " 分" : "未考"}</td><td>${st.goal ? st.goal + " 元" : "—"}</td><td><b>${m} 元</b></td><td>${st.goal ? (q ? (m >= st.goal ? "達成" : "差 " + (st.goal - m) + " 元") : "—") : "—"}</td><td>${p.paid[w] ? `<button class="chip lock" data-w="${w}" aria-pressed="true">已領取 ✓</button>` : !q ? `<span class="small muted">考完週考才能選</span>` : `<button class="chip pick" data-w="${w}" data-c="now" aria-pressed="${p.choice[w] === "now"}">這次領</button><button class="chip pick" data-w="${w}" data-c="later" aria-pressed="${p.choice[w] !== "now"}">累積到下次領</button>`}</td></tr>`; }).join("");
   const total = DATA.reduce((s, d) => s + weekMoney(d.week), 0);
+  const ci = claimInfo(p, weekMoney);
   const paid = DATA.reduce((s, d) => s + (p.paid[d.week] ? weekMoney(d.week) : 0), 0);
   const stampsDone = DATA.reduce((s, d) => s + d.groups.filter((g, i) => (wk(d.week).groups[i] || {}).done).length, 0), stampsAll = DATA.reduce((s, d) => s + d.groups.length, 0);
   const quizDone = DATA.filter((d) => wk(d.week).quiz).length;
@@ -475,11 +493,11 @@ function moneyPanel(){
       <div class="prog-bar" role="progressbar" aria-valuenow="${total}" aria-valuemin="0" aria-valuemax="1000"><i style="width:${pct}%"></i></div>
       <div class="small">已完成：柴犬章 ${stampsDone}／${stampsAll} 枚、週考 ${quizDone}／${DATA.length} 次　這一期還能再拿最多 <b>${left} 元</b></div>
       ${nowTip}</div>
-    <div class="chart"><table class="money"><thead><tr><th>週次</th><th>柴犬章</th><th>週考</th><th>目標</th><th>獎金</th><th>目標達成</th><th>領取</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <p style="margin:8px 0 4px">本期累計 <span class="score">${total}</span> 元（最多 1000 元）　已領 <span class="score">${paid}</span> 元　累積待領 <span class="score">${total - paid}</span> 元</p>
-    <div class="small muted">每週獎金先「累積到下次領」，媽媽發錢時在家長頁改成「這次領」。</div>
-    <div class="goal"><span class="small">領獎方式：</span></div></div>`);
-  ["每週領","每 4 週領","每 8 週領"].forEach((t) => { const c = $(`<button class="chip" aria-pressed="${p.payout === t}">${t}</button>`); c.onclick = () => { p.payout = t; save(); render(); }; el.querySelector(".goal").append(c); });
+    <div class="claim"><div>目前可領取 <b>${ci.can} 元</b>${ci.ready.length ? `（第 ${ci.ready.join("、")} 週）` : ""}</div><div class="small">累積中 ${ci.wait} 元　已領取 ${paid} 元</div></div>
+    <div class="chart"><table class="money"><thead><tr><th>週次</th><th>柴犬章</th><th>週考</th><th>目標</th><th>獎金</th><th>目標達成</th><th>領取方式</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="small muted">每週考完週考後，自己選「這次領」或「累積到下次領」。選這次領，那一週和之前累積的錢會一起變成可領取；媽媽發錢後會標成「已領取」，就不能再改。</div></div>`);
+  el.querySelectorAll(".pick").forEach((b) => b.onclick = () => { p.choice[b.dataset.w] = b.dataset.c; save(); render(); });
+  el.querySelectorAll(".lock").forEach((b) => b.onclick = () => toast("已領取，不能再改"));
   return el;
 }
 
