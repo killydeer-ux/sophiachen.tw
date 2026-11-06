@@ -125,6 +125,14 @@ input.fill.right{border-color:var(--ok)} input.fill.wrong{border-color:var(--bad
 .replay .rp-skip{font-size:.8rem;opacity:.6}
 @media (prefers-reduced-motion:no-preference){.replay .rp-combo.bump{animation:bump .25s ease-out}.replay .rp-dots i.in{animation:bump .25s ease-out}}
 @keyframes bump{0%{transform:scale(1.5)}100%{transform:scale(1)}}
+.mini{display:inline-flex;gap:2px;vertical-align:middle}.mini i{width:9px;height:9px;border-radius:50%;background:rgba(0,0,0,.12);display:block}.mini i.on{background:#e8913a}
+.paidtag{display:inline-block;padding:2px 10px;border-radius:999px;border:1px solid rgba(0,0,0,.2);font-size:.85rem}.paidtag.on{background:#dcfce7;border-color:#16a34a;color:#166534;font-weight:700}
+.wall .wsum{font-size:1.05rem;margin:2px 0 10px}.wall .wsum b{font-size:1.5rem;color:#c2410c}
+.wrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px dashed rgba(0,0,0,.1)}
+.wlab{width:4.2em;font-weight:700}.wicons{display:flex;gap:4px;flex-wrap:wrap}
+.ws{width:40px;height:40px;padding:0;border:0;background:none;cursor:pointer;line-height:0}.ws svg{width:100%;height:100%}.ws.off{opacity:.22;filter:grayscale(1);cursor:default}
+@media (prefers-reduced-motion:no-preference){.ws:not(.off):hover{transform:scale(1.12) rotate(-6deg)}}
+.medal{display:inline-flex;flex-direction:column;align-items:center;font-size:.7rem;line-height:1.1}.medal svg{width:34px;height:40px}
 .money th,.money td{white-space:nowrap;padding:6px 8px}
 .prog{background:var(--paper,#fff7ee);border-radius:12px;padding:12px 14px;margin:6px 0 10px}.prog-head{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}.prog-head b{font-size:1.6rem;color:#c2410c}
 .prog-bar{height:12px;border-radius:999px;background:rgba(0,0,0,.08);overflow:hidden;margin:8px 0 6px}.prog-bar i{display:block;height:100%;background:linear-gradient(90deg,#f59e0b,#e8913a);border-radius:999px}
@@ -311,6 +319,7 @@ function renderPlayers(app){
       if (!r.ok) { msg.style.color = "var(--bad)"; return msg.textContent = r.error || "密碼不對，再試一次。"; }
       const local = S.players[n], cloud = r.data;
       S.players[n] = (cloud && (!local || (cloud._t || 0) >= (local._t || 0))) ? cloud : (local || { weeks:{} });
+      if (cloud) S.players[n].paid = cloud.paid || {};
       CLOUD.pw[n] = pw; CLOUD.role[n] = r.role || "";
       try { localStorage.setItem(KEY + ":h:" + n, hashPw(pw)); } catch (x) {}
       S.current = n; save(); render(); sfx("bell");
@@ -340,9 +349,18 @@ function renderParent(app){
       S.players[p.name] = p.data || { weeks:{} }; CLOUD.role[p.name] = p.role; S.current = p.name;
       const sm = summary(p.name);
       const line = DATA.map((d) => `第 ${d.week} 週 ${sm["w"+d.week] === "" ? "未考" : sm["w"+d.week] + " 分"}`).join("　");
-      const money = rewarded() ? `　本期獎金 ${sm.money} 元（已領 ${sm.paid} 元）` : "";
+      const rw = rewarded(), money = rw ? `　本期獎金 ${sm.money} 元（已領 ${sm.paid} 元）` : "";
+      const wm = DATA.map((d) => ({ w:d.week, m:weekMoney(d.week), paid:!!((p.data || {}).paid || {})[d.week] }));
       S.current = keep; if (keepP) S.players[p.name] = keepP; else delete S.players[p.name];
-      list.append($(`<div class="q"><b>${esc(p.name)}</b>${money}<div class="small">${line}　柴犬章 ${sm.stamps} 枚</div></div>`));
+      const card = $(`<div class="q"><b>${esc(p.name)}</b>${money}<div class="small">${line}　柴犬章 ${sm.stamps} 枚</div>
+        ${rw ? `<div class="goal" style="margin-top:6px"><span class="small">發獎金：</span>${wm.map((x) => `<button class="chip pay" data-w="${x.w}" aria-pressed="${x.paid}">第 ${x.w} 週 ${x.m} 元｜${x.paid ? "已領" : "未領"}</button>`).join("")}</div>` : ""}</div>`);
+      card.querySelectorAll(".pay").forEach((b) => b.onclick = async () => {
+        const w = b.dataset.w, now = b.getAttribute("aria-pressed") !== "true";
+        const paidTotal = wm.reduce((t, x) => t + ((String(x.w) === w ? now : x.paid) ? x.m : 0), 0);
+        b.disabled = true; b.textContent = "處理中…";
+        try { const rr = await api({ action:"setPaid", name:S.current, pw:CLOUD.pw[S.current], user:p.name, week:w, paid:now, paidTotal });
+          if (!rr.ok) { b.textContent = rr.error || "失敗"; return; } render(); } catch (x) { b.textContent = "連不上雲端"; } });
+      list.append(card);
     });
     if (!r.players.length) list.append($(`<p>還沒有人存過成績。</p>`));
     const users = (r.users || []).filter((u) => !u.role.includes("家長")).map((u) => `${esc(u.name)}（${esc(u.role)}）`).join("、");
@@ -358,6 +376,10 @@ function renderParent(app){
       try { const rr = await api({ action:"setUser", name:S.current, pw:CLOUD.pw[S.current], user:mg.querySelector("#um-name").value.trim(), newPw:mg.querySelector("#um-pw").value, role:mg.querySelector("#um-role").value });
         m.textContent = rr.ok ? "完成！請把密碼私下告訴孩子。" : (rr.error || "失敗"); if (rr.ok) { NAMES = null; mg.querySelector("#um-pw").value = ""; } }
       catch (x) { m.textContent = "連不上雲端，請確認網路。"; } };
+    const rl = $(`<div class="goal" style="margin-top:10px"><span class="small">獎金制：</span>${(r.users || []).filter((u) => !u.role.includes("家長")).map((u) => `<button class="chip role" data-n="${esc(u.name)}" aria-pressed="${u.role.includes("有獎金")}">${esc(u.name)}｜${u.role.includes("有獎金") ? "有獎金" : "沒獎金"}</button>`).join("")}</div>`);
+    rl.querySelectorAll(".role").forEach((b) => b.onclick = async () => { const on = b.getAttribute("aria-pressed") !== "true"; b.disabled = true; b.textContent = "處理中…";
+      try { const rr = await api({ action:"setRole", name:S.current, pw:CLOUD.pw[S.current], user:b.dataset.n, role:on ? "學生（有獎金）" : "學生" }); if (rr.ok) render(); else b.textContent = rr.error || "失敗"; } catch (x) { b.textContent = "連不上雲端"; } });
+    mg.querySelector("p").after(rl);
     el.append(mg);
   }).catch(() => { el.querySelector("#pmsg").textContent = "連不上雲端，請確認網路。"; });
 }
@@ -367,7 +389,8 @@ document.addEventListener("visibilitychange", async () => {
   const n = S.current;
   if (document.visibilityState !== "visible" || !n || !CLOUD.pw[n] || !API.startsWith("https")) return;
   try { const r = await api({ action:"login", name:n, pw:CLOUD.pw[n] });
-    if (r.ok && r.data && (r.data._t || 0) > ((S.players[n] || {})._t || 0)) { S.players[n] = r.data; if (!G && !Q) render(); setStatus("已更新成最新進度"); } } catch (e) {}
+    if (r.ok && r.data && (r.data._t || 0) > ((S.players[n] || {})._t || 0)) { S.players[n] = r.data; if (!G && !Q) render(); setStatus("已更新成最新進度"); }
+    else if (r.ok && r.data && S.players[n] && JSON.stringify(r.data.paid || {}) !== JSON.stringify(S.players[n].paid || {})) { S.players[n].paid = r.data.paid || {}; if (!G && !Q) render(); } } catch (e) {}
 });
 
 function renderHome(app){
@@ -381,6 +404,7 @@ function renderHome(app){
   [250,200,150,100].forEach((v) => { const c = $(`<button class="chip" aria-pressed="${st.goal === v}">${v} 元</button>`);
     c.onclick = () => { st.goal = v; save(); render(); }; goal.querySelector("#g").append(c); });
   if (isParent()) { const pb = $(`<div class="panel row"><b>家長帳號</b><span class="small muted">您的進度也會存到雲端，可以先自己測試；孩子的進度不受影響。</span><button class="btn alt">看全部人的成績</button></div>`); pb.querySelector("button").onclick = () => { view = {name:"parent", week:view.week}; render(); }; app.append(pb); }
+  app.append(stampWall());
   if (rewarded()) { app.append(goal); app.append(moneyPanel()); }
   const grid = $(`<div class="missions"></div>`);
   B.groups.forEach((g, i) => { const r = st.groups[i] || {};
@@ -395,11 +419,27 @@ function renderHome(app){
   app.append(boardPanel(w));
 }
 
+function medal(score){ const c = score === 100 ? ["#f5c542","#b7791f","金牌"] : score >= 95 ? ["#e2e8f0","#64748b","銀牌"] : score >= 80 ? ["#e7a46a","#9a5a26","銅牌"] : null;
+  if (!c) return "";
+  return `<span class="medal" title="${c[2]}"><svg viewBox="0 0 60 70" aria-hidden="true"><path d="M18 0h10l6 22H24z" fill="#d6452f"/><path d="M42 0H32l-6 22h10z" fill="#2563eb"/><circle cx="30" cy="44" r="22" fill="${c[0]}" stroke="${c[1]}" stroke-width="3"/><text x="30" y="50" text-anchor="middle" font-size="16" font-weight="800" fill="${c[1]}">${score}</text></svg><span>${c[2]}</span></span>`; }
+function stampWall(){
+  const p = me(); let n = 0, m = 0;
+  const rows = DATA.map((d) => { const st = wk(d.week), q = st.quiz;
+    const icons = d.groups.map((g, i) => { const ok = (st.groups[i] || {}).done; if (ok) n++; return `<button class="ws ${ok ? "" : "off"}" ${ok ? "" : "disabled"} aria-label="第 ${d.week} 週第 ${i + 1} 組${ok ? "已蓋章" : "還沒蓋"}">${SHIBA}</button>`; }).join("");
+    const md = q ? medal(q.first) : ""; if (md) m++;
+    return `<div class="wrow"><span class="wlab">第 ${d.week} 週</span><span class="wicons">${icons}</span>${md}</div>`; }).join("");
+  const el = $(`<div class="panel wall"><h3>我的獎章牆</h3><div class="wsum">柴犬章 <b>${n}</b> 枚　週考獎牌 <b>${m}</b> 面</div>${rows}
+    <div class="small muted">點一下柴犬章看大圖。週考 100 分金牌、95 分以上銀牌、80 分以上銅牌。</div></div>`);
+  el.querySelectorAll(".ws:not(.off)").forEach((b) => b.onclick = () => {
+    const ov = $(`<div class="replay" role="dialog" aria-label="柴犬章"><div class="bigstamp" style="width:200px;height:200px">${SHIBA}</div><div class="rp-combo">${esc(b.getAttribute("aria-label").replace("已蓋章", ""))}</div><div class="rp-skip">點一下關閉</div></div>`);
+    ov.onclick = () => ov.remove(); document.body.append(ov); beep("bark"); });
+  return el;
+}
 function moneyPanel(){
   const p = me(); p.payout = p.payout || null; p.paid = p.paid || {};
   const rows = DATA.map((d) => { const w = d.week, st = wk(w), m = weekMoney(w), q = st.quiz;
     const sc = d.groups.filter((g, i) => st.groups[i] && st.groups[i].done).length;
-    return `<tr><td>第 ${w} 週</td><td>${sc}／6</td><td>${q ? q.first + " 分" : "未考"}</td><td>${st.goal ? st.goal + " 元" : "—"}</td><td><b>${m} 元</b></td><td>${st.goal ? (q ? (m >= st.goal ? "達成" : "差 " + (st.goal - m) + " 元") : "—") : "—"}</td><td><button class="chip paid" data-w="${w}" aria-pressed="${!!p.paid[w]}">${p.paid[w] ? "已領" : "未領"}</button></td></tr>`; }).join("");
+    return `<tr><td>第 ${w} 週</td><td><span class="mini">${d.groups.map((g, i) => `<i class="${(st.groups[i] || {}).done ? "on" : ""}"></i>`).join("")}</span> ${sc}／6</td><td>${q ? q.first + " 分" : "未考"}</td><td>${st.goal ? st.goal + " 元" : "—"}</td><td><b>${m} 元</b></td><td>${st.goal ? (q ? (m >= st.goal ? "達成" : "差 " + (st.goal - m) + " 元") : "—") : "—"}</td><td>${p.paid[w] ? `<span class="paidtag on">已領</span>` : `<span class="paidtag">未領</span>`}</td></tr>`; }).join("");
   const total = DATA.reduce((s, d) => s + weekMoney(d.week), 0);
   const paid = DATA.reduce((s, d) => s + (p.paid[d.week] ? weekMoney(d.week) : 0), 0);
   const stampsDone = DATA.reduce((s, d) => s + d.groups.filter((g, i) => (wk(d.week).groups[i] || {}).done).length, 0), stampsAll = DATA.reduce((s, d) => s + d.groups.length, 0);
@@ -415,9 +455,9 @@ function moneyPanel(){
       ${nowTip}</div>
     <div class="chart"><table class="money"><thead><tr><th>週次</th><th>柴犬章</th><th>週考</th><th>目標</th><th>獎金</th><th>目標達成</th><th>領取</th></tr></thead><tbody>${rows}</tbody></table></div>
     <p style="margin:8px 0 4px">本期累計 <span class="score">${total}</span> 元（最多 1000 元）　已領 <span class="score">${paid}</span> 元　還沒領 <span class="score">${total - paid}</span> 元</p>
+    <div class="small muted">「已領」由媽媽確認後在家長頁打勾。</div>
     <div class="goal"><span class="small">領獎方式：</span></div></div>`);
   ["每週領","每 4 週領","每 8 週領"].forEach((t) => { const c = $(`<button class="chip" aria-pressed="${p.payout === t}">${t}</button>`); c.onclick = () => { p.payout = t; save(); render(); }; el.querySelector(".goal").append(c); });
-  el.querySelectorAll(".paid").forEach((b) => b.onclick = () => { const w = b.dataset.w; p.paid[w] = !p.paid[w]; save(); render(); });
   return el;
 }
 
