@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>作品集｜陳雅柔 Sophia Chen</title>
+<meta name="description" content="陳雅柔 Sophia Chen 的作品集：個人品牌網站、AI 課程講義，以及用 AI 協作做出來的學習工具與網頁。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap">
+<style>
+:root{--bg:#F3EFE7;--ink:#1C1B19;--mute:#7A776F;--soft:#4A4844;--card:#FFFFFF;--chip:#F1EBE0;--rust:#B8642F;--line:#E4DED3}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:'Noto Sans TC',system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.serif{font-family:'Noto Serif TC',serif}
+.top{background:var(--ink);color:#F3EFE7}
+.top .in{max-width:960px;margin:0 auto;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.top .n{font-size:18px;font-weight:700}.top .n small{font-weight:400;font-size:13px;opacity:.75;margin-left:6px}
+.top .s{font-size:12px;opacity:.75;margin-top:2px}
+.back{border:1px solid rgba(243,239,231,.4);border-radius:999px;padding:9px 16px;font-size:13px;white-space:nowrap}
+.back:hover{background:rgba(243,239,231,.1)}
+.wrap{max-width:960px;margin:0 auto;padding:28px 20px 48px}
+.lead h1{font-size:30px;margin:0 0 10px;line-height:1.3}
+.lead p{margin:0;color:var(--soft);font-size:15px;line-height:1.85;max-width:640px}
+.sec{margin-top:40px}
+.sec h2{font-size:14px;letter-spacing:.12em;font-weight:700;margin:0 0 4px;display:flex;align-items:center;gap:8px}
+.sec h2::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--rust)}
+.sec .d{font-size:13px;color:var(--mute);margin:0 0 16px 15px;line-height:1.7}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),1fr));gap:18px}
+.w{background:var(--card);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--line);transition:transform .15s,box-shadow .15s}
+a.w:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(28,27,25,.08)}
+.w .th{aspect-ratio:16/10;background:#E9E3D8;overflow:hidden;border-bottom:1px solid var(--line);position:relative;container-type:inline-size}
+.w .b{padding:16px 18px 18px;display:flex;flex-direction:column;gap:8px;flex:1}
+.w .tag{font-size:11px;font-weight:700;color:var(--rust);letter-spacing:.06em}
+.w h3{margin:0;font-size:19px;line-height:1.35}
+.w p{margin:0;font-size:14px;line-height:1.75;color:var(--soft)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.chips span{background:var(--chip);border-radius:999px;padding:4px 10px;font-size:12px;color:var(--soft)}
+.go{margin-top:auto;padding-top:8px;display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.go .u{color:var(--mute)}
+.go .a{font-weight:700}
+.go .priv{color:var(--mute);background:var(--chip);border-radius:6px;padding:4px 8px;font-size:12px}
+.w .th iframe{position:absolute;top:0;left:0;width:800px;height:500px;border:0;transform-origin:0 0;pointer-events:none;background:var(--bg)}
+.mk{position:absolute;inset:0;padding:7% 8%;display:flex;flex-direction:column;gap:3cqw;overflow:hidden}
+.mk-game{background:#1F3D36;color:#F3EFE7;border-bottom:6px solid #E0702A}
+.mk-game .g1{font-family:'Noto Serif TC',serif;font-weight:700;font-size:10cqw;line-height:1.1}
+.mk-game .g2{font-size:3.6cqw;opacity:.8}.mk-game .g3{font-size:3.8cqw;opacity:.9}
+.mk-game .g4{margin-top:auto;align-self:flex-start;background:#E0702A;color:#fff;font-weight:700;font-size:4cqw;padding:2cqw 4cqw;border-radius:4px}
+.mk-nb{background:#fff;color:#1a1a1a;gap:2.2cqw}
+.mk-nb .n1{font-weight:700;font-size:6cqw;border-bottom:2px solid #1a1a1a;padding-bottom:2cqw}
+.mk-nb .n2{font-size:3.4cqw;color:#666}
+.mk-nb .n3{display:flex;gap:3cqw;font-size:3.6cqw;border:1px solid #999;padding:1.5cqw 3cqw}
+.mk-nb .n4{display:flex;gap:4cqw;font-size:3.4cqw}.mk-nb .n4 i{font-style:normal}.mk-nb .r{color:#C0392B}.mk-nb .gr{color:#2E7D4F}
+.mk-nb .n5{height:3cqw;background:#ECECEC;border-radius:2px}.mk-nb .n5.s{width:65%}
+.mk-vis{background:#fff;gap:3cqw}
+.mk-vis .v1{font-weight:700;font-size:5.6cqw;border-bottom:3px solid #2E7D4F;padding-bottom:1.5cqw;display:flex;gap:2.5cqw;align-items:center}
+.mk-vis .v1 b{background:#2E7D4F;color:#fff;font-size:3.4cqw;padding:.8cqw 2cqw;border-radius:4px}
+.mk-vis .v2{background:#EAF3EE;border-left:4px solid #2E7D4F;padding:2cqw 3cqw;font-size:4cqw}
+.mk-vis .v3{display:grid;grid-template-columns:1fr 1fr;gap:2.5cqw;flex:1}
+.mk-vis .v3 span{border:1.5px solid #2E7D4F;border-radius:6px;padding:2cqw 3cqw;font-size:3.8cqw;font-weight:700;color:#2E7D4F}
+.mk-vis .v3 span:last-child{border-color:#9B2C2C;color:#9B2C2C}
+.mk-dc{background:linear-gradient(135deg,#FFF3C4,#FFC56E);color:#15171c;gap:1.5cqw}
+.mk-dc .d0{position:absolute;right:5%;top:-6%;font-size:46cqw;font-weight:900;line-height:1;color:transparent;-webkit-text-stroke:2px #e0601c;font-family:Impact,'Arial Black',sans-serif}
+.mk-dc .d1{font-size:3.4cqw;font-weight:700;color:#c4501a;position:relative}
+.mk-dc .d2{font-size:13cqw;font-weight:900;line-height:1.1;position:relative}
+.mk-dc .d3{font-size:4.4cqw;font-weight:700;letter-spacing:.12em;color:#7a5418;position:relative}
+.mk-dc .d4{margin-top:auto;display:flex;flex-wrap:wrap;gap:2cqw;position:relative}
+.mk-dc .d4 span{background:#fff;border-radius:99px;padding:1cqw 3cqw;font-size:3.2cqw}.mk-dc .d4 .o{background:#e0601c;color:#fff;font-weight:700}
+.how{margin-top:44px;background:var(--ink);color:#F3EFE7;border-radius:16px;padding:24px 22px}
+.how h2{margin:0 0 12px;font-size:20px}
+.how ol{margin:0;padding-left:20px;line-height:1.9;font-size:14px;color:#DCD6CB}
+.how b{color:#fff}
+.foot{margin-top:28px;display:flex;gap:10px;flex-wrap:wrap}
+.foot a{flex:1 1 160px;text-align:center;border-radius:10px;padding:13px;font-size:14px;font-weight:700;border:1px solid var(--ink)}
+.foot a.p{background:var(--ink);color:#F3EFE7}
+.site{text-align:center;color:var(--mute);font-size:12px;margin-top:18px}
+@media (max-width:520px){.lead h1{font-size:25px}.wrap{padding:22px 16px 40px}.top .in{padding:16px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="in">
+  <div><div class="n serif">陳雅柔<small>Sophia Chen</small></div><div class="s">作品集</div></div>
+  <a class="back" href="../card/">← 名片</a>
+</div></header>
+
+<main class="wrap">
+  <div class="lead">
+    <h1 class="serif">作品集</h1>
+    <p>這裡收的是我用 AI 協作做出來的網頁與工具：從自己的個人品牌網站，到幫孩子打造的學習系統。全部不靠工程師，從需求、內容到上線都自己帶著 AI 完成，也是我上課時拿來示範的實際案例。</p>
+  </div>
+
+  <section class="sec">
+    <h2>個人品牌網站</h2>
+    <p class="d">sophiachen.tw 本身就是作品：自有網域、GitHub Pages 免費架站，手機和電腦都好看。</p>
+    <div class="grid">
+      <a class="w" href="../card/"><div class="th"><iframe src="../card/" title="電子名片預覽" loading="lazy" tabindex="-1" aria-hidden="true" scrolling="no"></iframe></div><div class="b">
+        <div class="tag">網站・電子名片</div><h3 class="serif">電子名片</h3>
+        <p>一頁看懂我是誰：職稱、經歷、聯絡方式，以及課程、媒體、講義的入口。手機打開就是一張名片，LINE、Email 一鍵聯絡。</p>
+        <div class="chips"><span>手機優先設計</span><span>自有網域</span><span>一鍵聯絡</span></div>
+        <div class="go"><span class="u">sophiachen.tw/card</span><span class="a">打開 →</span></div></div></a>
+      <a class="w" href="../courses/"><div class="th"><iframe src="../courses/" title="課程與教材預覽" loading="lazy" tabindex="-1" aria-hidden="true" scrolling="no"></iframe></div><div class="b">
+        <div class="tag">網站・課程</div><h3 class="serif">課程與教材</h3>
+        <p>可授課主題與實作成果：AI 行政流程優化、行銷廣告流程 AI 優化、行銷經營實務。每一堂都來自我實際操作過的流程。</p>
+        <div class="chips"><span>AI 行政流程</span><span>廣告素材自動化</span><span>行銷實務</span></div>
+        <div class="go"><span class="u">sophiachen.tw/courses</span><span class="a">打開 →</span></div></div></a>
+      <a class="w" href="../slides/"><div class="th"><iframe src="../slides/" title="講義區預覽" loading="lazy" tabindex="-1" aria-hidden="true" scrolling="no"></iframe></div><div class="b">
+        <div class="tag">網站・講義</div><h3 class="serif">AI 課程講義區</h3>
+        <p>上課用的簡報都放在這裡，可以線上翻閱或下載 PDF。第一堂「零基礎做出你的電子名片」35 頁，帶學員當天做出自己的網址。</p>
+        <div class="chips"><span>線上翻閱</span><span>PDF 下載</span><span>零基礎</span></div>
+        <div class="go"><span class="u">sophiachen.tw/slides</span><span class="a">打開 →</span></div></div></a>
+      <a class="w" href="../media/"><div class="th"><iframe src="../media/" title="演講與媒體預覽" loading="lazy" tabindex="-1" aria-hidden="true" scrolling="no"></iframe></div><div class="b">
+        <div class="tag">網站・媒體</div><h3 class="serif">演講與媒體</h3>
+        <p>新北電商學院年度交流會與談、Yahoo 新聞專訪、Dcard for Business 成功案例、行銷人報導，整理成一頁。</p>
+        <div class="chips"><span>演講</span><span>媒體專訪</span><span>品牌報導</span></div>
+        <div class="go"><span class="u">sophiachen.tw/media</span><span class="a">打開 →</span></div></div></a>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>AI 做的學習工具</h2>
+    <p class="d">幫小六的兒子準備考試時做的工具。重點不是題目多，而是「專打他自己錯過的地方」。</p>
+    <div class="grid">
+      <a class="w" href="../guwen/"><div class="th"><iframe src="../guwen/" title="古文偵探任務預覽" loading="lazy" tabindex="-1" aria-hidden="true" scrolling="no"></iframe></div><div class="b">
+        <div class="tag">網頁應用・國文</div><h3 class="serif">古文偵探任務</h3>
+        <p>國文閱讀與文言文特訓的作答網站。先教一招解題技巧再練習，交卷自動批改，全對蓋柴犬章；還有徽章牆、排行榜和獎金追蹤。進度存在 Google 試算表，換手機也接得上，家長帳號可以看所有人的進度。</p>
+        <div class="chips"><span>自動批改</span><span>雲端存進度</span><span>家長後台</span><span>遊戲化</span></div>
+        <div class="go"><span class="u">sophiachen.tw/guwen</span><span class="a">打開 →（需帳號）</span></div></div></a>
+      <div class="w"><div class="th"><div class="mk mk-game"><div class="g1">學霸養成模擬器</div><div class="g2">隊友阿球 × 柴教授</div><div class="g3">專打你最常錯的那幾題，答對三次才放你走</div><div class="g4">🏀 開場</div></div></div><div class="b">
+        <div class="tag">手機遊戲・期中考複習</div><h3 class="serif">學霸養成模擬器</h3>
+        <p>把孩子期中考前的真實錯題，依「錯法」分組做成手機遊戲，共 195 題。答錯先給提示、真的不會才教解法；連對三次才算真的會；另有 40 分鐘計時模擬考，和每天的任務進度。</p>
+        <div class="chips"><span>真實錯題</span><span>依錯法分組</span><span>連對三次</span><span>模擬考計時</span></div>
+        <div class="go"><span class="u">家用版</span><span class="priv">不公開</span></div></div></div>
+      <div class="w"><div class="th"><div class="mk mk-nb"><div class="n1">數學錯題本・解析版</div><div class="n2">康軒數學・期中考前</div><div class="n3"><b>第 1 題</b><span>植樹問題</span></div><div class="n4"><i class="r">紅字：正確答案</i><i class="gr">綠字：易錯提醒</i></div><div class="n5"></div><div class="n5 s"></div><div class="n5"></div></div></div><div class="b">
+        <div class="tag">PDF 講義・錯題整理</div><h3 class="serif">錯題本（重做版／解析版）</h3>
+        <p>考卷拍照丟給 AI：抄題、自己再算一次驗證答案、寫詳解和錯因，排成兩種 PDF——「重做版」留空讓孩子重寫，「解析版」給家長對答案。數學解法照課本格式寫，每個數字都有出處。</p>
+        <div class="chips"><span>拍照建檔</span><span>答案驗算</span><span>錯因分析</span></div>
+        <div class="go"><span class="u">家用版</span><span class="priv">不公開</span></div></div></div>
+      <div class="w"><div class="th"><div class="mk mk-vis"><div class="v1"><b>自然</b>一、雲是怎麼來的？</div><div class="v2">有水蒸氣、遇冷凝結、有凝結核</div><div class="v3"><span>成因</span><span>種類</span><span>降水</span><span>常錯陷阱</span></div></div></div><div class="b">
+        <div class="tag">PDF 講義・考前複習</div><h3 class="serif">單元圖像整理講義</h3>
+        <p>考前一單元一頁：一句話抓重點、重點架構圖、示意圖、解題步驟，再加上從孩子自己錯題歸納出的「你常錯的地方」和口訣。國語、數學、自然、社會四科。</p>
+        <div class="chips"><span>架構圖</span><span>常錯陷阱</span><span>口訣</span></div>
+        <div class="go"><span class="u">家用版</span><span class="priv">不公開</span></div></div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>個人介紹網頁</h2>
+    <p class="d">升學書審用的個人網頁，同一份內容同時做成手機版、電腦版和 A4 列印版。</p>
+    <div class="grid">
+      <a class="w" href="../duncan/"><div class="th"><div class="mk mk-dc"><div class="d0">28</div><div class="d1">南山中學國中部・書面審查</div><div class="d2">陳玗樊</div><div class="d3">DUNCAN</div><div class="d4"><span>集美國小</span><span class="o">籃球校隊 副隊長</span><span>背號 #28</span></div></div></div><div class="b">
+        <div class="tag">網站・書審</div><h3 class="serif">陳玗樊｜個人介紹</h3>
+        <p>南山國中部書面審查用的個人網頁：自我介紹、籃球校隊比賽紀錄、比賽與分享影片、獎狀與學習表現。另有 A4 列印版當書審附件，第一頁放 QR code，審查老師用手機一掃就能看完整版和影片。</p>
+        <div class="chips"><span>手機／電腦／列印三版</span><span>QR code</span><span>內嵌影片</span></div>
+        <div class="go"><span class="u">sophiachen.tw/duncan</span><span class="a">打開 →</span></div></div></a>
+    </div>
+  </section>
+
+  <section class="how">
+    <h2 class="serif">這些都是怎麼做出來的</h2>
+    <ol>
+      <li><b>先講清楚要給誰用、要解決什麼</b>：例如「孩子總是錯同一類題目」，而不是「做一個網站」。</li>
+      <li><b>內容先到位，再做外觀</b>：題目、錯因、文案先整理好，版面最後才排。</li>
+      <li><b>AI 負責寫程式和排版，我負責判斷</b>：每一版都自己用手機打開看過、挑錯、再改。</li>
+      <li><b>免費上線</b>：GitHub Pages 架站、綁自己的網域，需要存資料時接 Google 試算表。</li>
+    </ol>
+  </section>
+
+  <div class="foot"><a class="p" href="https://line.me/ti/p/~sophia02011">LINE 聯絡我</a><a href="mailto:killydeer@gmail.com">Email</a></div>
+  <div class="site">sophiachen.tw</div>
+</main>
+<script>
+(function(){function fit(){document.querySelectorAll('.th iframe').forEach(function(f){f.style.transform='scale('+(f.parentNode.clientWidth/800)+')'})}fit();addEventListener('resize',fit)})();
+</script>
+</body>
+</html>
