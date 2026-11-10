@@ -87,6 +87,19 @@ ul.list li > *{min-width:0}
 .clip .yt{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.65);color:#fff;font-size:12px;padding:2px 8px;border-radius:4px}
 .clip figcaption{font-size:13px;padding:8px 10px;line-height:1.5}
 .clip .cat{display:inline-block;font-size:11px;font-weight:700;color:var(--court);margin-right:6px}
+
+@media print{
+  @page{size:A4;margin:12mm 0}
+  html,body{background:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .wrap,.hero .in{max-width:none;padding-left:14mm;padding-right:14mm}
+  .hero .in{padding-top:6mm}
+  section{margin-top:22px}
+  h2{break-after:avoid;page-break-after:avoid}
+  .card,ul.list li,.shots,.clip,.qr,.ns,.stats,.box{break-inside:avoid;page-break-inside:avoid}
+  .reel{overflow:visible;flex-wrap:wrap}
+  .clip{flex:0 0 31%}
+  .qr .t::after{content:"網址：sophiachen.tw/duncan";display:block;font-weight:700;margin-top:6px}
+}
 </style>
 
 <header class="hero"><div class="in">
