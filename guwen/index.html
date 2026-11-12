@@ -158,6 +158,7 @@ input.fill.right{border-color:var(--ok)} input.fill.wrong{border-color:var(--bad
 .upl label.pick{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
 .upl input[type=file]{position:absolute;width:1px;height:1px;opacity:0}
 .uplog{font-size:.88rem}.uplog div{padding:2px 0}
+.pick.off{opacity:.45}
 .mute{background:none;border:1px solid currentColor;border-radius:999px;padding:2px 10px;font:inherit;color:inherit;cursor:pointer}
 </style>
 
@@ -724,7 +725,7 @@ function renderQuiz(app){
 
 // ━━ 五科任務與每日讀書回報（2026-11-12 新增；存在每個人資料的 school 欄位，不動到古文進度）━━
 // SCHOOL 每一筆：{id, date:"11/13", subj:"國語", title:"第6課 ……", points:["重點"], qs:[{q, opts:[4], ans:"A", steps:[], avoid:""}]}
-const SCHOOL = [];
+const SCHOOL = [{"id":"m-1112","date":"11/12","subj":"數學","title":"圓周長：換單位＋半圓周長（預習）","points":["圓周長＝直徑×3.14；直徑＝圓周長÷3.14；半徑＝直徑÷2","「繞一圈」「轉一圈」的長度就是圓周長","先算完再看題目要的單位：100 公分＝1 公尺","預習：半圓的周長＝圓周長÷2＋直徑（別忘了直的那條邊）"],"qs":[{"q":"圓的直徑是 20 公分，圓周長是多少公分？","opts":["62.8","31.4","125.6","60"],"ans":"A","steps":["圓周長＝直徑×3.14","20×3.14＝62.8","答：62.8 公分"],"avoid":"給直徑就直接乘 3.14，不用再乘 2"},{"q":"圓的半徑是 7 公分，圓周長是多少公分？","opts":["21.98","43.96","153.86","14"],"ans":"B","steps":["題目給半徑，先求直徑：7×2＝14","圓周長＝14×3.14＝43.96","答：43.96 公分"],"avoid":"看清楚給的是半徑還是直徑"},{"q":"一個圓的圓周長是 94.2 公分，直徑是多少公分？","opts":["30","15","47.1","295.788"],"ans":"A","steps":["直徑＝圓周長÷3.14","94.2÷3.14＝30","檢查：30×3.14＝94.2 ✔"],"avoid":"求直徑用除的，最後代回去乘乘看"},{"q":"一個圓形花圃的圓周長是 62.8 公尺，半徑是多少公尺？","opts":["20","10","31.4","5"],"ans":"B","steps":["先求直徑：62.8÷3.14＝20","半徑＝直徑÷2＝10","答：10 公尺"],"avoid":"題目問半徑，算出直徑後還要再除以 2"},{"q":"腳踏車輪胎的直徑是 50 公分，轉了 100 圈，車子前進了多少公尺？","opts":["157","1570","15.7","15700"],"ans":"A","steps":["轉一圈＝圓周長：50×3.14＝157（公分）","100 圈：157×100＝15700（公分）","題目問公尺：15700 公分＝157 公尺"],"avoid":"最後一定要看題目要的單位，100 公分＝1 公尺"},{"q":"小明繞著圓形廣場外圍走一圈，剛好走了 200 步，每步長 47.1 公分。這個廣場的直徑大約是多少公尺？","opts":["30","3000","15","300"],"ans":"A","steps":["繞一圈的長度＝圓周長：47.1×200＝9420（公分）","直徑＝9420÷3.14＝3000（公分）","3000 公分＝30 公尺"],"avoid":"「繞一圈」就是圓周長；答案記得換成公尺"},{"q":"（預習）直徑 10 公分的半圓形，周長是多少公分？","opts":["15.7","25.7","31.4","20.7"],"ans":"B","steps":["半圓的彎曲部分＝圓周長÷2：10×3.14÷2＝15.7","還要加上直的那條邊（直徑）：15.7＋10＝25.7","答：25.7 公分"],"avoid":"半圓的周長＝彎的那段＋直的那條直徑，別漏掉直徑"},{"q":"甲圓的半徑是乙圓的 3 倍，甲圓的圓周長是乙圓的幾倍？","opts":["3 倍","6 倍","9 倍","一樣長"],"ans":"A","steps":["半徑是 3 倍，直徑也是 3 倍","圓周長＝直徑×3.14，3.14 不變","所以圓周長也是 3 倍"],"avoid":"圓周長跟著直徑一起變大，倍數一樣"}]},{"id":"c-1112","date":"11/12","subj":"國語","title":"第八課 飢渴好「火」伴：一字多義＋課文重點","points":["「枕」：用東西墊頭（枕戈待旦）、墊在底下的（枕木）、頭部墊的東西（高枕無憂）","滿天星星讀 ㄒㄧㄥ ˙ㄒㄧㄥ；星星之火讀 ㄒㄧㄥ ㄒㄧㄥ","自怨自艾的「艾」讀 ㄧˋ，意思是改正","布萊恩四次生火：乾草堆→樺樹毛鬚→用力吹→輕輕吹，靠觀察、善用資源和不斷嘗試"],"qs":[{"q":"「枕戈待旦」的「枕」是什麼意思？","opts":["用東西墊頭","墊在底下的","睡覺時頭部墊的東西（枕頭）","想念"],"ans":"A","steps":["枕戈待旦：把兵器（戈）當枕頭墊著頭，等待天亮","「枕」在這裡是動作：用東西墊頭","答：A"],"avoid":"先看「枕」是動作還是東西"},{"q":"「鐵軌下的枕木」的「枕」是什麼意思？","opts":["用東西墊頭","墊在底下的","枕頭","靠著休息"],"ans":"B","steps":["枕木是鋪在鐵軌下面的木頭","它的作用是墊在底下","答：B"],"avoid":"同一個字，代回句子看哪個意思通"},{"q":"哪一個「星星」的第二個字要讀輕聲（˙ㄒㄧㄥ）？","opts":["滿天星星","星星之火，可以燎原","兩個都讀輕聲","兩個都不讀輕聲"],"ans":"A","steps":["滿天星星：指天上的星，口語名詞，讀 ㄒㄧㄥ ˙ㄒㄧㄥ","星星之火：形容零星細小，讀 ㄒㄧㄥ ㄒㄧㄥ","答：A"],"avoid":"意思不同，讀音也可能不同，兩個要分開記"},{"q":"「自怨自艾」的「艾」讀音和意思是？","opts":["ㄞˋ，艾草","ㄧˋ，改正、悔改","ㄞˋ，停止","ㄧˋ，美好"],"ans":"B","steps":["自怨自艾：自己悔恨，想改正錯誤","這裡的艾讀 ㄧˋ，意思是改正","答：B"],"avoid":"「艾草」讀 ㄞˋ，成語裡讀 ㄧˋ，是常考的破音字"},{"q":"哪一句的「自怨自艾」用得最恰當？","opts":["他考了一百分，在家自怨自艾","大隊接力掉棒後，他自怨自艾，後來在同學鼓勵下重新振作","他自怨自艾地和朋友出去玩","媽媽自怨自艾地稱讚他"],"ans":"B","steps":["自怨自艾是做錯事後怪自己、懊悔","只有 B 是犯錯後懊悔","答：B"],"avoid":"成語造句要配合情境：先有做錯或失敗，才會自怨自艾"},{"q":"依照習作的整理，哪一項「不是」布萊恩成功找到「火」伴的原因？","opts":["敏銳的觀察力","善用身邊資源及所學","不斷嘗試，反省改進","豐沛的同理心"],"ans":"D","steps":["他觀察、採集樺樹毛鬚 → 觀察力、善用資源","回憶科學課學過的方法 → 善用所學","失敗四次還一直調整 → 不斷嘗試","生火過程沒有用到同理心 → 答：D"],"avoid":"每個選項都要回課文找證據，找不到的就不是"},{"q":"第二次嘗試時，布萊恩找了什麼來引燃火花？","opts":["乾草堆","樺樹毛鬚","細樹枝","紙張"],"ans":"B","steps":["第一次在乾草堆中敲火花，沒成功","想到需要「絨毛般既細又軟的東西」","觀察、採集樺樹毛鬚 → 答：B"],"avoid":"注意題目問的是「第幾次」，不要和其他次搞混"},{"q":"第四次嘗試，布萊恩改變了什麼？","opts":["換一把斧頭","改成輕輕的吹氣","換一個地方","加更多木頭"],"ans":"B","steps":["第三次用力吹氣，反而把火吹熄","第四次想到要調整吹氣方式","改成輕輕的吹 → 答：B"],"avoid":"找「想法」和「行動」的對應：想到什麼，就做了什麼"}]}];
 const SUBJS = ["國語","數學","英文","自然","社會"];
 const WHYS = ["粗心","字不熟","觀念不懂","不會"];
 const todayKey = (off) => { const d = new Date(Date.now() + 8 * 3600e3 - (off || 0) * 864e5); return d.toISOString().slice(0, 10); };
@@ -792,6 +793,7 @@ function renderSchool(app){
 }
 // 上傳照片：課本、評量錯題、考卷，存到媽媽的雲端硬碟，Claude 再讀取
 const KINDS = ["課本內頁","課本目錄","評量錯題","習作錯題","考卷","聯絡簿","其他"];
+const UPL = { subj:"", kind:"" };
 function shrink(file){ return new Promise((ok, bad) => { const img = new Image(), url = URL.createObjectURL(file);
   img.onload = () => { const M = 1800, k = Math.min(1, M / Math.max(img.width, img.height)), c = document.createElement("canvas");
     c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
@@ -800,12 +802,18 @@ function shrink(file){ return new Promise((ok, bad) => { const img = new Image()
 function uploadPanel(k, r){
   const el = $(`<div class="panel upl"><h3>上傳今天的照片</h3>
     <p class="small muted" style="margin:0">課本、評量錯題、考卷都可以。一頁拍一張，拍正、字要清楚。照片會存到媽媽的雲端硬碟，媽媽再請 Claude 整理。${r.photos ? `<br><b>這天已上傳 ${r.photos} 張</b>` : ""}</p>
-    <div class="row"><select class="fill" id="u-subj">${SUBJS.concat("其他").map((x) => `<option>${x}</option>`).join("")}</select><select class="fill" id="u-kind">${KINDS.map((x) => `<option>${x}</option>`).join("")}</select></div>
+    <div class="row"><select class="fill" id="u-subj"><option value="">① 先選科目</option>${SUBJS.concat("其他").map((x) => `<option ${UPL.subj === x ? "selected" : ""}>${x}</option>`).join("")}</select><select class="fill" id="u-kind"><option value="">② 再選種類</option>${KINDS.map((x) => `<option ${UPL.kind === x ? "selected" : ""}>${x}</option>`).join("")}</select></div>
+    <p class="small muted" style="margin:0">一次只傳同一科、同一種的照片；換科目要重新選再傳。</p>
     <div><label class="btn alt pick">選照片或拍照<input type="file" id="u-file" accept="image/*" multiple></label></div>
     <div class="uplog" aria-live="polite"></div></div>`);
-  const log = el.querySelector(".uplog"), inp = el.querySelector("#u-file");
+  const log = el.querySelector(".uplog"), inp = el.querySelector("#u-file"), ss = el.querySelector("#u-subj"), sk = el.querySelector("#u-kind"), pick = el.querySelector(".pick");
+  const ready = () => { const ok = !!(ss.value && sk.value); inp.disabled = !ok; pick.classList.toggle("off", !ok); pick.setAttribute("aria-disabled", !ok); };
+  ss.onchange = () => { UPL.subj = ss.value; ready(); }; sk.onchange = () => { UPL.kind = sk.value; ready(); };
+  pick.addEventListener("click", (e) => { if (inp.disabled) { e.preventDefault(); toast("先選科目和種類，再選照片"); } });
+  ready();
   inp.onchange = async () => { const files = Array.from(inp.files || []); if (!files.length) return;
-    const subj = el.querySelector("#u-subj").value, kind = el.querySelector("#u-kind").value; let okN = 0;
+    const subj = ss.value, kind = sk.value; let okN = 0;
+    if (!subj || !kind) { toast("先選科目和種類，再選照片"); inp.value = ""; return; }
     inp.disabled = true;
     for (let i = 0; i < files.length; i++) { const line = $(`<div>第 ${i + 1}／${files.length} 張：上傳中…</div>`); log.append(line);
       try { const image = await shrink(files[i]);
@@ -813,7 +821,7 @@ function uploadPanel(k, r){
         if (res.ok) { okN++; line.textContent = `第 ${i + 1}／${files.length} 張：✓ 已上傳（${subj}・${kind}）`; }
         else line.textContent = `第 ${i + 1}／${files.length} 張：沒傳成功（${res.error || "請再試一次"}）`; }
       catch (e) { line.textContent = `第 ${i + 1}／${files.length} 張：沒傳成功，請確認網路再試一次`; } }
-    inp.value = ""; inp.disabled = false;
+    inp.value = ""; ready();
     if (okN) { r.photos = (r.photos || 0) + okN; r.photoLog = (r.photoLog || []).concat({ subj, kind, n:okN, t:Date.now() }); save(); beep("ok"); toast(`上傳了 ${okN} 張照片！`); }
   };
   return el;
