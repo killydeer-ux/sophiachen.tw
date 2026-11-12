@@ -154,6 +154,10 @@ input.fill.right{border-color:var(--ok)} input.fill.wrong{border-color:var(--bad
 .pts li{margin:2px 0}
 .rep-view{font-size:.9rem;border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}
 .rep-view table{border-collapse:collapse;width:100%}.rep-view td,.rep-view th{border-bottom:1px solid var(--line);padding:3px 6px;text-align:left;vertical-align:top}
+.upl{display:flex;flex-direction:column;gap:8px}.upl .row select{flex:1;min-width:0}
+.upl label.pick{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
+.upl input[type=file]{position:absolute;width:1px;height:1px;opacity:0}
+.uplog{font-size:.88rem}.uplog div{padding:2px 0}
 .mute{background:none;border:1px solid currentColor;border-radius:999px;padding:2px 10px;font:inherit;color:inherit;cursor:pointer}
 </style>
 
@@ -756,6 +760,7 @@ function renderSchool(app){
       b.onclick = () => { view = { name:"sset", week:view.week, day:k, id:x.id }; render(); }; g.append(b); });
     pr.append(g); }
   app.append(pr);
+  app.append(uploadPanel(k, r));
   // 回報表
   const f = $(`<div class="panel"><h3>${dayName(k)} 讀書回報</h3><p class="small muted" style="margin:0 0 8px">學校沒上完一課也沒關係，寫頁數就好；那科今天沒上就寫「沒上」。</p><div class="subjs"></div></div>`);
   const box = f.querySelector(".subjs");
@@ -784,6 +789,34 @@ function renderSchool(app){
     if (!r.focus) { toast("先圈今天的專心度"); return; }
     r.sent = true; r.sentAt = Date.now(); save(); beep("ok"); toast("回報已交給媽媽！"); render(); };
   act.append(send); app.append(act);
+}
+// 上傳照片：課本、評量錯題、考卷，存到媽媽的雲端硬碟，Claude 再讀取
+const KINDS = ["課本內頁","課本目錄","評量錯題","習作錯題","考卷","聯絡簿","其他"];
+function shrink(file){ return new Promise((ok, bad) => { const img = new Image(), url = URL.createObjectURL(file);
+  img.onload = () => { const M = 1800, k = Math.min(1, M / Math.max(img.width, img.height)), c = document.createElement("canvas");
+    c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(url); ok(c.toDataURL("image/jpeg", .82)); };
+  img.onerror = () => { URL.revokeObjectURL(url); bad(new Error("讀不到這張照片")); }; img.src = url; }); }
+function uploadPanel(k, r){
+  const el = $(`<div class="panel upl"><h3>上傳今天的照片</h3>
+    <p class="small muted" style="margin:0">課本、評量錯題、考卷都可以。一頁拍一張，拍正、字要清楚。照片會存到媽媽的雲端硬碟，媽媽再請 Claude 整理。${r.photos ? `<br><b>這天已上傳 ${r.photos} 張</b>` : ""}</p>
+    <div class="row"><select class="fill" id="u-subj">${SUBJS.concat("其他").map((x) => `<option>${x}</option>`).join("")}</select><select class="fill" id="u-kind">${KINDS.map((x) => `<option>${x}</option>`).join("")}</select></div>
+    <div><label class="btn alt pick">選照片或拍照<input type="file" id="u-file" accept="image/*" multiple></label></div>
+    <div class="uplog" aria-live="polite"></div></div>`);
+  const log = el.querySelector(".uplog"), inp = el.querySelector("#u-file");
+  inp.onchange = async () => { const files = Array.from(inp.files || []); if (!files.length) return;
+    const subj = el.querySelector("#u-subj").value, kind = el.querySelector("#u-kind").value; let okN = 0;
+    inp.disabled = true;
+    for (let i = 0; i < files.length; i++) { const line = $(`<div>第 ${i + 1}／${files.length} 張：上傳中…</div>`); log.append(line);
+      try { const image = await shrink(files[i]);
+        const res = await api({ action:"upload", name:S.current, pw:CLOUD.pw[S.current], image, day:k, subj, kind });
+        if (res.ok) { okN++; line.textContent = `第 ${i + 1}／${files.length} 張：✓ 已上傳（${subj}・${kind}）`; }
+        else line.textContent = `第 ${i + 1}／${files.length} 張：沒傳成功（${res.error || "請再試一次"}）`; }
+      catch (e) { line.textContent = `第 ${i + 1}／${files.length} 張：沒傳成功，請確認網路再試一次`; } }
+    inp.value = ""; inp.disabled = false;
+    if (okN) { r.photos = (r.photos || 0) + okN; r.photoLog = (r.photoLog || []).concat({ subj, kind, n:okN, t:Date.now() }); save(); beep("ok"); toast(`上傳了 ${okN} 張照片！`); }
+  };
+  return el;
 }
 let SQ = null;
 function renderSchoolSet(app){
@@ -823,7 +856,7 @@ function parentSchoolEl(d){
     const rows = SUBJS.map((sj) => { const o = (r.subj || {})[sj] || {}; return (o.at || o.did || o.wrong) ? `<tr><th>${sj}</th><td>${esc(o.at)}</td><td>${esc(o.did)}</td><td>${o.wrong !== "" && o.wrong != null ? esc(o.wrong) + " 題" : ""}${(o.why || []).length ? "｜" + esc(o.why.join("、")) : ""}</td></tr>` : ""; }).join("");
     el.append($(`<div style="margin:8px 0"><div><b>${dayName(k)}</b>　${r.sent ? "已交" : "填寫中"}　專心度 ${r.focus || "—"}／5</div>
       ${rows ? `<table><tr><th>科目</th><th>學校上到</th><th>回家寫</th><th>錯題</th></tr>${rows}</table>` : `<div class="small muted">五科都還沒填</div>`}
-      ${r.learned ? `<div>學到：${esc(r.learned)}</div>` : ""}${r.stuck ? `<div>卡住：${esc(r.stuck)}</div>` : ""}${r.next ? `<div>明天：${esc(r.next)}</div>` : ""}</div>`)); });
+      ${r.photos ? `<div>照片：${r.photos} 張（${(r.photoLog || []).map((x) => esc(x.subj + x.kind + x.n + "張")).join("、")}）</div>` : ""}${r.learned ? `<div>學到：${esc(r.learned)}</div>` : ""}${r.stuck ? `<div>卡住：${esc(r.stuck)}</div>` : ""}${r.next ? `<div>明天：${esc(r.next)}</div>` : ""}</div>`)); });
   const done = SCHOOL.filter((x) => sets[x.id] && sets[x.id].first != null);
   if (done.length) el.append($(`<div style="margin-top:6px"><b>五科練習成績</b>${done.map((x) => `<div class="small">${esc(x.date)} ${esc(x.subj)}｜${esc(x.title)}：第一次 ${sets[x.id].first}／${x.qs.length}${sets[x.id].done ? "，已全對" : ""}</div>`).join("")}</div>`));
   return el;
