@@ -141,6 +141,19 @@ input.fill.right{border-color:var(--ok)} input.fill.wrong{border-color:var(--bad
 .money th,.money td{white-space:nowrap;padding:6px 8px}
 .prog{background:var(--paper,#fff7ee);border-radius:12px;padding:12px 14px;margin:6px 0 10px}.prog-head{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}.prog-head b{font-size:1.6rem;color:var(--accent2)}
 .prog-bar{height:12px;border-radius:999px;background:var(--track);overflow:hidden;margin:8px 0 6px}.prog-bar i{display:block;height:100%;background:linear-gradient(90deg,#f59e0b,#e8913a);border-radius:999px}
+.subjs{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.subj{min-width:0;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--panel);display:flex;flex-direction:column;gap:6px}
+.subj b{color:var(--court)}
+.rep-in{font:inherit;width:100%;box-sizing:border-box;min-width:0;border:2px solid var(--line);border-radius:8px;padding:4px 8px;background:var(--panel);color:var(--ink)}
+.why-chips{display:flex;flex-wrap:wrap;gap:4px}.why-chips .chip{background:var(--panel);color:var(--ink);font-family:var(--f-body);font-weight:400;font-size:.8rem;padding:2px 8px}
+.focus .chip{min-width:2.4em}
+.daybar{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.schoolbtn{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border:2px solid var(--court)}
+.setcard{border-left:4px solid var(--ball)}
+.pts{background:var(--paper);border-radius:10px;padding:10px 14px;margin:6px 0}
+.pts li{margin:2px 0}
+.rep-view{font-size:.9rem;border-top:1px dashed var(--line);padding-top:6px;margin-top:6px}
+.rep-view table{border-collapse:collapse;width:100%}.rep-view td,.rep-view th{border-bottom:1px solid var(--line);padding:3px 6px;text-align:left;vertical-align:top}
 .mute{background:none;border:1px solid currentColor;border-radius:999px;padding:2px 10px;font:inherit;color:inherit;cursor:pointer}
 </style>
 
@@ -180,7 +193,8 @@ function cloudSave(){
 const snap = (o) => JSON.parse(JSON.stringify(o));
 function stash(){ if (!S.current || !S.players[S.current]) return;
   if (view.name === "group" && G && G.id === `${view.week}-${view.gi}`) { const st = wk(view.week); st.drafts = st.drafts || {}; st.drafts["g" + view.gi] = snap(G); }
-  if (view.name === "quiz" && Q && Q.id === view.week) { const st = wk(view.week); st.drafts = st.drafts || {}; st.drafts.quiz = snap(Q); } }
+  if (view.name === "quiz" && Q && Q.id === view.week) { const st = wk(view.week); st.drafts = st.drafts || {}; st.drafts.quiz = snap(Q); }
+  if (view.name === "sset" && typeof SQ !== "undefined" && SQ && SQ.id === view.id) { sch().sets[SQ.id] = sch().sets[SQ.id] || {}; sch().sets[SQ.id].draft = snap(SQ); } }
 const save = () => { stash(); const n = S.current; if (n && S.players[n]) S.players[n]._t = Date.now();
   try { localStorage.setItem(KEY, JSON.stringify({ players:S.players, current:S.current })); } catch (e) {} cloudSave(); };
 const me = () => S.players[S.current];
@@ -282,6 +296,8 @@ function render(){
   if (view.name === "home") renderHome(app);
   else if (view.name === "group") renderGroup(app);
   else if (view.name === "quiz") renderQuiz(app);
+  else if (view.name === "school") renderSchool(app);
+  else if (view.name === "sset") renderSchoolSet(app);
   window.scrollTo(0, 0);
 }
 
@@ -374,6 +390,7 @@ function renderParent(app){
       if (pa) pa.onclick = async () => { pa.disabled = true; pa.textContent = "處理中…"; let paidNow = wm.reduce((t, x) => t + (x.paid ? x.m : 0), 0);
         try { for (const w of ci.ready) { paidNow += mm[w]; const rr = await api({ action:"setPaid", name:S.current, pw:CLOUD.pw[S.current], user:p.name, week:String(w), paid:true, paidTotal:paidNow }); if (!rr.ok) { pa.textContent = rr.error || "失敗"; return; } }
           render(); } catch (x) { pa.textContent = "連不上雲端"; } };
+      card.append(parentSchoolEl(p.data));
       list.append(card);
     });
     if (!r.players.length) list.append($(`<p>還沒有人存過成績。</p>`));
@@ -418,6 +435,7 @@ function renderHome(app){
   [250,200,150,100].forEach((v) => { const c = $(`<button class="chip" aria-pressed="${st.goal === v}">${v} 元</button>`);
     c.onclick = () => { st.goal = v; save(); render(); }; goal.querySelector("#g").append(c); });
   if (isParent()) { const pb = $(`<div class="panel row"><b>家長帳號</b><span class="small muted">您的進度也會存到雲端，可以先自己測試；孩子的進度不受影響。</span><button class="btn alt">看全部人的成績</button></div>`); pb.querySelector("button").onclick = () => { view = {name:"parent", week:view.week}; render(); }; app.append(pb); }
+  app.append(schoolEntry());
   app.append(stampWall());
   if (rewarded()) { app.append(goal); app.append(moneyPanel()); }
   const grid = $(`<div class="missions"></div>`);
@@ -698,6 +716,117 @@ function renderQuiz(app){
     act.append(keep);
   }
   app.append(act);
+}
+
+// ━━ 五科任務與每日讀書回報（2026-11-12 新增；存在每個人資料的 school 欄位，不動到古文進度）━━
+// SCHOOL 每一筆：{id, date:"11/13", subj:"國語", title:"第6課 ……", points:["重點"], qs:[{q, opts:[4], ans:"A", steps:[], avoid:""}]}
+const SCHOOL = [];
+const SUBJS = ["國語","數學","英文","自然","社會"];
+const WHYS = ["粗心","字不熟","觀念不懂","不會"];
+const todayKey = (off) => { const d = new Date(Date.now() + 8 * 3600e3 - (off || 0) * 864e5); return d.toISOString().slice(0, 10); };
+const dayName = (k) => { const d = new Date(k + "T00:00:00+08:00"); return `${d.getMonth() + 1}/${d.getDate()}（${"日一二三四五六"[d.getDay()]}）`; };
+const sch = () => { const p = me(); p.school = p.school || {}; p.school.reports = p.school.reports || {}; p.school.sets = p.school.sets || {}; return p.school; };
+const repOf = (k) => { const s = sch(); s.reports[k] = s.reports[k] || { subj:{}, learned:"", stuck:"", next:"", focus:0 }; return s.reports[k]; };
+function schoolEntry(){
+  const s = sch(), k = todayKey(), r = s.reports[k];
+  const filled = r ? SUBJS.filter((x) => r.subj[x] && (r.subj[x].at || r.subj[x].did)).length : 0;
+  const todo = SCHOOL.filter((x) => !(s.sets[x.id] && s.sets[x.id].first != null)).length;
+  const el = $(`<button class="panel schoolbtn"><span><b style="font-size:1.1rem">五科任務＋今日回報</b><br><span class="small muted">國語・數學・英文・自然・社會</span></span>
+    <span class="small"><b>${r && r.sent ? "今天已回報 ✓" : filled ? `今天回報了 ${filled} 科` : "今天還沒回報"}</b>${todo ? `　待做練習 ${todo} 份` : ""}</span></button>`);
+  el.onclick = () => { view = { name:"school", week:view.week, day:k }; render(); };
+  return el;
+}
+function renderSchool(app){
+  const back = $(`<button class="back">← 回任務板</button>`); back.onclick = () => { view = { name:"home", week:view.week }; render(); }; app.append(back);
+  const k = view.day || todayKey(), r = repOf(k);
+  app.append($(`<div><h2>五科任務＋今日回報</h2><div class="small muted">睡前花 10 分鐘填好。填的每一個字都會自動存到雲端，媽媽看得到。</div></div>`));
+  const bar = $(`<div class="daybar" role="tablist"></div>`);
+  for (let i = 0; i <= 6; i++) { const d = todayKey(i), has = sch().reports[d] && sch().reports[d].sent;
+    const t = $(`<button class="tab" role="tab" aria-selected="${d === k}">${i === 0 ? "今天" : dayName(d).slice(0, -3)}<small>${has ? "已回報 ✓" : dayName(d).slice(-3)}</small></button>`);
+    t.onclick = () => { view.day = d; render(); }; bar.append(t); }
+  app.append(bar);
+  // 練習題
+  const sets = SCHOOL.slice().reverse();
+  const pr = $(`<div class="panel"><h3>五科練習（媽媽傳課本給 Claude 後會出現在這裡）</h3></div>`);
+  if (!sets.length) pr.append($(`<p class="small muted" style="margin:0">目前還沒有練習題。先把下面的回報填好，媽媽會拍課本給 Claude，練習題準備好就會出現在這裡。</p>`));
+  else { const g = $(`<div class="missions"></div>`);
+    sets.forEach((x) => { const rec = sch().sets[x.id] || {};
+      const b = $(`<button class="mission ${rec.done ? "done" : ""}"><span class="no">${esc(x.date)}｜${esc(x.subj)}</span><span class="t">${esc(x.title)}</span><span class="s">${x.qs.length} 題</span>
+        <span class="st">${rec.done ? `完成，第一次對 ${rec.first} 題` : rec.first != null ? `第一次對 ${rec.first} 題，還沒全對` : "還沒做"}</span></button>`);
+      b.onclick = () => { view = { name:"sset", week:view.week, day:k, id:x.id }; render(); }; g.append(b); });
+    pr.append(g); }
+  app.append(pr);
+  // 回報表
+  const f = $(`<div class="panel"><h3>${dayName(k)} 讀書回報</h3><p class="small muted" style="margin:0 0 8px">學校沒上完一課也沒關係，寫頁數就好；那科今天沒上就寫「沒上」。</p><div class="subjs"></div></div>`);
+  const box = f.querySelector(".subjs");
+  SUBJS.forEach((sj) => { const o = r.subj[sj] = r.subj[sj] || { at:"", did:"", wrong:"", why:[] };
+    const c = $(`<div class="subj"><b>${sj}</b>
+      <label class="small">學校今天上到<input class="rep-in" data-f="at" placeholder="第＿課 P.＿" value="${esc(o.at)}"></label>
+      <label class="small">回家寫了什麼<input class="rep-in" data-f="did" placeholder="評量、習作…" value="${esc(o.did)}"></label>
+      <label class="small">錯幾題<input class="rep-in" data-f="wrong" inputmode="numeric" placeholder="0" value="${esc(o.wrong)}"></label>
+      <div class="small">錯在哪</div><div class="why-chips">${WHYS.map((w) => `<button class="chip" data-w="${w}" aria-pressed="${o.why.includes(w)}">${w}</button>`).join("")}</div></div>`);
+    c.querySelectorAll(".rep-in").forEach((i) => i.oninput = () => { o[i.dataset.f] = i.value; r.sent = false; save(); });
+    c.querySelectorAll(".why-chips .chip").forEach((b) => b.onclick = () => { const w = b.dataset.w, on = !o.why.includes(w);
+      o.why = on ? o.why.concat(w) : o.why.filter((x) => x !== w); b.setAttribute("aria-pressed", on); beep("tap"); save(); });
+    box.append(c); });
+  const more = $(`<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+    <label class="small"><b>今天學到的一個重點</b>（用自己的話寫一句）<input class="rep-in" data-f="learned" value="${esc(r.learned)}"></label>
+    <label class="small"><b>卡住的地方</b>（哪一科、哪一題）<input class="rep-in" data-f="stuck" value="${esc(r.stuck)}"></label>
+    <label class="small"><b>明天要做什麼</b><input class="rep-in" data-f="next" value="${esc(r.next)}"></label>
+    <div class="small"><b>今天專心度</b></div><div class="goal focus">${[1,2,3,4,5].map((n) => `<button class="chip" data-n="${n}" aria-pressed="${r.focus === n}">${n}</button>`).join("")}<span class="small muted">5＝超專心</span></div></div>`);
+  more.querySelectorAll(".rep-in").forEach((i) => i.oninput = () => { r[i.dataset.f] = i.value; r.sent = false; save(); });
+  more.querySelectorAll(".focus .chip").forEach((b) => b.onclick = () => { r.focus = Number(b.dataset.n); beep("tap"); save(); render(); });
+  f.append(more);
+  app.append(f);
+  const act = $(`<div class="actions"></div>`), send = $(`<button class="btn">${r.sent ? "已交給媽媽 ✓（改了會自動更新）" : "填好了，交給媽媽"}</button>`);
+  send.onclick = () => { const n = SUBJS.filter((x) => r.subj[x].at || r.subj[x].did).length;
+    if (!n && !send.dataset.warn) { send.dataset.warn = 1; send.textContent = "五科都還空白，確定要交？再按一次"; return; }
+    if (!r.focus) { toast("先圈今天的專心度"); return; }
+    r.sent = true; r.sentAt = Date.now(); save(); beep("ok"); toast("回報已交給媽媽！"); render(); };
+  act.append(send); app.append(act);
+}
+let SQ = null;
+function renderSchoolSet(app){
+  const x = SCHOOL.find((y) => y.id === view.id);
+  const back = $(`<button class="back">← 回五科任務</button>`); back.onclick = () => { SQ = null; view = { name:"school", week:view.week, day:view.day }; render(); }; app.append(back);
+  if (!x) { app.append($(`<p>找不到這份練習。</p>`)); return; }
+  const rec = sch().sets[x.id] = sch().sets[x.id] || {};
+  if (!SQ || SQ.id !== x.id) SQ = rec.draft ? snap(rec.draft) : { id:x.id, ans:{}, locked:{}, graded:false };
+  app.append($(`<div><h2>${esc(x.subj)}｜${esc(x.title)}</h2><div class="small muted">${esc(x.date)}　先讀重點，再作答。全部選完再交卷，錯的會告訴你為什麼。</div></div>`));
+  if (x.points && x.points.length) app.append($(`<div class="pts"><b>這一課的重點</b><ol>${x.points.map((t) => `<li>${esc(t)}</li>`).join("")}</ol></div>`));
+  const sec = $(`<div class="panel setcard"></div>`), items = x.qs.map((q, i) => [q, "s" + i]);
+  items.forEach(([q, k], i) => sec.append(mcqEl(q, k, SQ, i + 1)));
+  app.append(sec);
+  const keepDraft = () => { rec.draft = snap(SQ); };
+  sec.addEventListener("click", () => { keepDraft(); });
+  const total = items.length, right = () => items.filter(([q, k]) => SQ.ans[k] === q.ans).length;
+  if (SQ.graded) app.append($(`<div class="result pop"><div>這一輪</div><div class="big">${right()}／${total}</div><div>${right() === total ? "全對！" : "看完解析，按「錯的再做一次」。"}</div></div>`));
+  const act = $(`<div class="actions"></div>`);
+  if (!SQ.graded) { const sub = $(`<button class="btn">交卷</button>`);
+    sub.onclick = () => { const left = items.filter(([q, k]) => !SQ.ans[k]).length;
+      if (left && !sub.dataset.warn) { sub.dataset.warn = 1; sub.textContent = `還有 ${left} 題沒選，再按一次交卷`; return; }
+      items.forEach(([q, k]) => SQ.locked[k] = true); SQ.graded = true; const rt = right();
+      if (rec.first == null) { rec.first = rt; rec.wrongFirst = items.filter(([q, k]) => SQ.ans[k] !== q.ans).map(([q, k], i) => k); rec.at = Date.now(); }
+      if (rt === total) rec.done = true; keepDraft(); save(); render();
+      replay(`${x.subj}｜交卷`, items.map(([q, k]) => SQ.ans[k] === q.ans), (p) => { if (p) beep("win"); }); };
+    act.append(sub); }
+  else if (right() < total) { const again = $(`<button class="btn alt">錯的再做一次</button>`);
+    again.onclick = () => { items.forEach(([q, k]) => { if (SQ.ans[k] !== q.ans) { delete SQ.ans[k]; SQ.locked[k] = false; } }); SQ.graded = false; keepDraft(); save(); render(); }; act.append(again); }
+  app.append(act);
+}
+// 家長總覽：最近 7 天的回報與五科練習成績
+function parentSchoolEl(d){
+  const s = (d && d.school) || {}, reps = s.reports || {}, sets = s.sets || {};
+  const days = Object.keys(reps).sort().reverse().slice(0, 7);
+  const el = $(`<details class="rep-view"><summary><b>五科讀書回報</b>（${days.length ? "最近 " + days.length + " 天" : "還沒有回報"}）</summary></details>`);
+  days.forEach((k) => { const r = reps[k];
+    const rows = SUBJS.map((sj) => { const o = (r.subj || {})[sj] || {}; return (o.at || o.did || o.wrong) ? `<tr><th>${sj}</th><td>${esc(o.at)}</td><td>${esc(o.did)}</td><td>${o.wrong !== "" && o.wrong != null ? esc(o.wrong) + " 題" : ""}${(o.why || []).length ? "｜" + esc(o.why.join("、")) : ""}</td></tr>` : ""; }).join("");
+    el.append($(`<div style="margin:8px 0"><div><b>${dayName(k)}</b>　${r.sent ? "已交" : "填寫中"}　專心度 ${r.focus || "—"}／5</div>
+      ${rows ? `<table><tr><th>科目</th><th>學校上到</th><th>回家寫</th><th>錯題</th></tr>${rows}</table>` : `<div class="small muted">五科都還沒填</div>`}
+      ${r.learned ? `<div>學到：${esc(r.learned)}</div>` : ""}${r.stuck ? `<div>卡住：${esc(r.stuck)}</div>` : ""}${r.next ? `<div>明天：${esc(r.next)}</div>` : ""}</div>`)); });
+  const done = SCHOOL.filter((x) => sets[x.id] && sets[x.id].first != null);
+  if (done.length) el.append($(`<div style="margin-top:6px"><b>五科練習成績</b>${done.map((x) => `<div class="small">${esc(x.date)} ${esc(x.subj)}｜${esc(x.title)}：第一次 ${sets[x.id].first}／${x.qs.length}${sets[x.id].done ? "，已全對" : ""}</div>`).join("")}</div>`));
+  return el;
 }
 render();
 </script>
