@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-title" content="古文偵探">
 </head>
 <body>
-<title>古文偵探任務</title>
+<title>國中先修特訓</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Noto+Serif+TC:wght@500;700&family=Chakra+Petch:wght@600;700&display=swap">
 <style>
@@ -347,7 +347,7 @@ function render(){
 function boardEl(){
   const w = view.week, st = wk(w);
   const stamps = Object.values(st.groups).filter((g) => g.done).length;
-  const el = $(`<div class="board"><h1>古文偵探任務</h1>
+  const el = $(`<div class="board"><h1>國中先修特訓</h1>
     <div class="who">偵探：<b>${esc(S.current)}</b><button id="sw">換人</button><span class="small" id="cloud">${esc(CLOUD.status)}</span><button class="mute" id="mute" aria-pressed="${!MUTE}">${MUTE ? "音效：關" : "音效：開"}</button></div>
     <div class="score">第 ${w} 週　柴犬章 ${stamps}／6　週考 ${st.quiz ? st.quiz.first + " 分" : "未考"}</div>
     <div class="stamps" aria-label="本週柴犬章">${[0,1,2,3,4,5].map((i) => shiba((st.groups[i] || {}).done ? "" : "off")).join("")}</div></div>`);
@@ -365,7 +365,7 @@ const rewarded = () => isParent() || (CLOUD.role[S.current] || "").includes("有
 let pick = null;
 let NAMES = null;
 function renderPlayers(app){
-  app.append($(`<div class="board"><h1>古文偵探任務</h1><div class="small">國文閱讀特訓・小六上</div></div>`));
+  app.append($(`<div class="board"><h1>國中先修特訓</h1><div class="small">國文古文偵探・英文拆字特訓・會考實戰</div></div>`));
   const el = $(`<div class="panel"><h2>你是哪一位偵探？</h2>
     <p class="muted small">選自己的名字，輸入媽媽給你的密碼。進度存在雲端，換手機也接得上。</p>
     <form id="lg" style="display:flex;flex-direction:column;gap:10px;max-width:360px">
@@ -523,7 +523,7 @@ function renderEngUnit(app){
 }
 
 function subjBar(app, cur){
-  const bar = $(`<div class="subjbar" role="tablist" aria-label="科目">${[["chi","國文"],["eng","英文"],["sci","自然"],["soc","社會"]].map(([k, n]) => `<button role="tab" data-k="${k}" aria-selected="${k === cur}" class="${k === "sci" || k === "soc" ? "soon" : ""}">${n}${k === "sci" || k === "soc" ? "<small>暑假開放</small>" : ""}</button>`).join("")}</div>`);
+  const bar = $(`<div class="subjbar" role="tablist" aria-label="科目">${[["chi","國文","古文偵探"],["eng","英文","拆字特訓"],["sci","自然","暑假開放"],["soc","社會","暑假開放"]].map(([k, n, sub]) => `<button role="tab" data-k="${k}" aria-selected="${k === cur}" class="${k === "sci" || k === "soc" ? "soon" : ""}">${n}<small>${sub}</small></button>`).join("")}</div>`);
   bar.querySelectorAll("button").forEach((b) => b.onclick = () => { const k = b.dataset.k;
     if (k === "sci" || k === "soc") return toast("自然、社會會在國小畢業後的暑假開放先修！");
     SUBJ = k; try { localStorage.setItem("gwdt_subj", k); } catch (e) {} view = {name:"home", week:view.week || curWeek()}; render(); });
