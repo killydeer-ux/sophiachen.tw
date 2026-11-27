@@ -274,31 +274,19 @@ document.addEventListener("pointerdown", (e) => {
     add("fx-petal", `--dx:${Math.cos(a) * r}px;--dy:${Math.sin(a) * r + 14}px;--r:${Math.random() * 360}deg;background:${k % 2 ? "#f4a7b0" : "#f9d0a0"}`); }
 }, { passive: true });
 
-// 籃球音效：空心進網、打鐵、終場蜂鳴器、觀眾歡呼
-function noiseBuf(d){ const n = AC.sampleRate * d, b = AC.createBuffer(1, n, AC.sampleRate), x = b.getChannelData(0); for (let i = 0; i < n; i++) x[i] = Math.random() * 2 - 1; return b; }
-function swish(t0, vol){ const s = AC.createBufferSource(); s.buffer = noiseBuf(.35); const bp = AC.createBiquadFilter(), g = AC.createGain(); bp.type = "bandpass"; bp.Q.value = 1.2;
-  const t = AC.currentTime + t0; bp.frequency.setValueAtTime(6000, t); bp.frequency.exponentialRampToValueAtTime(1200, t + .28);
-  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol || .5, t + .03); g.gain.exponentialRampToValueAtTime(.001, t + .32);
-  s.connect(bp).connect(g).connect(AC.destination); s.start(t); s.stop(t + .36); }
-function clank(t0){ [523, 1380, 2210].forEach((f, i) => tone(f, t0, .22 - i * .05, "square", .05 - i * .012)); tone(140, t0 + .12, .12, "sine", .18, 70); }
-function buzzer(t0){ const t = AC.currentTime + t0, o = AC.createOscillator(), o2 = AC.createOscillator(), lp = AC.createBiquadFilter(), g = AC.createGain();
-  o.type = "sawtooth"; o2.type = "sawtooth"; o.frequency.value = 190; o2.frequency.value = 196; lp.type = "lowpass"; lp.frequency.value = 1400;
-  g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.16, t + .02); g.gain.setValueAtTime(.16, t + .85); g.gain.exponentialRampToValueAtTime(.001, t + 1);
-  o.connect(lp); o2.connect(lp); lp.connect(g).connect(AC.destination); o.start(t); o2.start(t); o.stop(t + 1.05); o2.stop(t + 1.05); }
-function cheer(t0){ const t = AC.currentTime + t0, s = AC.createBufferSource(); s.buffer = noiseBuf(2.6); const bp = AC.createBiquadFilter(), g = AC.createGain();
-  bp.type = "bandpass"; bp.frequency.value = 1300; bp.Q.value = .6; g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.32, t + .5); g.gain.exponentialRampToValueAtTime(.001, t + 2.5);
-  s.connect(bp).connect(g).connect(AC.destination); s.start(t); s.stop(t + 2.6);
-  [0, .35, .9].forEach((d) => { tone(2400, t0 + .3 + d, .18, "sine", .05, 2900); }); }
-function bell(t0){ // 上課鐘聲（西敏寺鐘聲前兩句）
-  const N = { E4:329.6, Fs4:370, Gs4:415.3, B3:246.9 };
-  [["Gs4",0],["Fs4",1],["E4",2],["B3",3],["E4",4.6],["Gs4",5.6],["Fs4",6.6],["E4",7.6]].forEach(([n, k]) => {
-    const t = AC.currentTime + t0 + k * .55, f = N[n];
-    [[1, .12], [2.76, .04], [5.4, .015], [.5, .05]].forEach(([h, v]) => { const o = AC.createOscillator(), g = AC.createGain(); o.type = "sine"; o.frequency.value = f * h;
-      g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(v, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + 2.2);
-      o.connect(g).connect(AC.destination); o.start(t); o.stop(t + 2.3); }); }); }
-function sfx(kind, t0){ if (MUTE) return; try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume();
-  t0 = t0 || 0; if (kind === "swish") swish(t0); else if (kind === "clank") clank(t0); else if (kind === "buzzer") buzzer(t0); else if (kind === "cheer") cheer(t0); else if (kind === "bell") bell(t0);
-  else if (kind === "combo") [784, 988, 1175, 1568].forEach((f, i) => tone(f, t0 + i * .05, .12, "square", .04)); } catch (e) {} }
+// 音效改用「內線戰神」那一套（2026-11-27 Sophie：音樂取消，用內線戰神的音樂）：只有短提示音，沒有鐘聲與背景音樂
+function nt(freq, dur, type, when, vol){ const o = AC.createOscillator(), g = AC.createGain(); o.type = type || "sine"; o.frequency.value = freq;
+  const t = AC.currentTime + (when || 0); g.gain.setValueAtTime(vol || .2, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + dur); }
+const NX = {
+  tap(){ nt(660, .08, "triangle", 0, .12); },
+  right(){ nt(880, .12, "triangle"); nt(1320, .18, "triangle", .1); },
+  wrong(){ nt(180, .25, "sawtooth", 0, .12); },
+  swish(){ [523,659,784,1047].forEach((f, i) => nt(f, .2, "triangle", i*.1)); },
+  champion(){ [523,659,784,1047,784,1047,1319].forEach((f, i) => nt(f, .22, "square", i*.12, .1)); }
+};
+function sfx(kind){ if (MUTE) return; try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume();
+  const m = { swish:"right", clank:"wrong", combo:"swish", cheer:"champion" }[kind]; if (m) NX[m](); } catch (e) {} }
 // 交卷後的投籃重播：一題一題揭曉，連對累積連擊
 function replay(title, results, done){
   const total = results.length, ov = $(`<div class="replay" role="dialog" aria-label="成績揭曉"><div class="rp-title">${esc(title)}</div><div class="rp-combo" aria-live="polite"></div>
@@ -325,14 +313,8 @@ function replay(title, results, done){
 
 function beep(kind){
   if (MUTE) return;
-  try {
-    AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume();
-    if (kind === "tap") return tone(880, 0, .07, "sine", .08);
-    if (kind === "bark") { tone(620, 0, .12, "sawtooth", .07, 380); tone(700, .16, .14, "sawtooth", .07, 400); return; }
-    if (kind === "stamp") { tone(160, 0, .18, "sine", .3, 60); [523,659,784,1047].forEach((f, i) => tone(f, .2 + i*.11, .3)); tone(1319, .66, .5, "sine", .12); setTimeout(() => beep("bark"), 1150); return; }
-    if (kind === "win") { [523,659,784,1047,784,1047].forEach((f, i) => tone(f, i*.12, .32)); tone(1568, .75, .6, "sine", .12); setTimeout(() => beep("bark"), 1350); return; }
-    if (kind === "ok") { [660,880,990].forEach((f, i) => tone(f, i*.12, .28)); return; }
-    [392,330,262].forEach((f, i) => tone(f, i*.16, .3, "sine", .13));
+  try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume();
+    const m = { tap:"tap", ok:"right", stamp:"swish", win:"champion" }[kind]; if (m) NX[m](); else if (kind !== "bark") NX.wrong();
   } catch (e) {}
 }
 
