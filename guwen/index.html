@@ -489,7 +489,7 @@ function engState(u){
 }
 const engUnitOpen = (u) => isParent() || u === 1 || engState(u-1).slice(-1)[0].tried;
 function renderEngHome(app){
-  const el = $(`<div class="panel"><h3>英文拆字特訓</h3><p class="small muted" style="margin:0 0 8px">每個單元：先讀講義 → 三組練習 → 會考實戰 → 單元考。做完單元考就開下一個單元。每組全對 ${PER_GROUP} 元，算進當週獎金（每週最多 250 元）。</p><div class="eng-units"></div></div>`);
+  const el = $(`<div class="panel"><h3>英文拆字特訓</h3><p class="small muted" style="margin:0 0 8px">每個單元：先讀講義 → 三組練習 → 會考實戰 → 單元考。做完單元考就開下一個單元。</p>${rewarded() ? `<p class="small" style="margin:0 0 8px">英文獎金另外算：每組全對 ${PER_GROUP} 元；單元考 100 分 100 元、95 分以上 75 元、80 分以上 50 元；英文每週最多 250 元。<b>本週英文已賺 ${engMoney(curWeek())} 元</b></p>` : ""}<div class="eng-units"></div></div>`);
   const box = el.querySelector(".eng-units");
   ENG.forEach((U) => { const u = U.unit, open = engUnitOpen(u), st = engState(u), n = st.filter((x) => x.done).length;
     const b = $(`<button class="mission${open ? "" : " off"}${n === st.length ? " done" : ""}"><span class="no">第 ${u} 單元</span><span class="t">${esc(U.title)}</span><span class="s">${U.words.length} 個單字</span><span class="st">${open ? `完成 ${n}／${st.length}` : "上一單元考完才開"}</span></button>`);
@@ -669,8 +669,8 @@ function moneyPanel(){
   const per = perOf(view.week || curWeek()), PD = DATA.filter((d) => perOf(d.week) === per), w0 = (per - 1) * 4 + 1, w1 = w0 + PD.length - 1;
   const rows = PD.map((d) => { const w = d.week, st = wk(w), m = weekMoney(w), q = st.quiz;
     const sc = d.groups.filter((g, i) => st.groups[i] && st.groups[i].done).length;
-    return `<tr><td>第 ${w} 週</td><td><span class="mini">${d.groups.map((g, i) => `<i class="${(st.groups[i] || {}).done ? "on" : ""}"></i>`).join("")}</span> ${sc}／6</td><td>${q ? q.first + " 分" : "未考"}</td><td>${st.goal ? st.goal + " 元" : "—"}</td><td><b>${m} 元</b></td><td>${st.goal ? (q ? (m >= st.goal ? "達成" : "差 " + (st.goal - m) + " 元") : "—") : "—"}</td><td>${p.paid[w] ? `<button class="chip lock" data-w="${w}" aria-pressed="true">已領取 ✓</button>` : !q ? `<span class="small muted">考完週考才能選</span>` : `<button class="chip pick" data-w="${w}" data-c="now" aria-pressed="${p.choice[w] === "now"}">這次領</button><button class="chip pick" data-w="${w}" data-c="later" aria-pressed="${p.choice[w] !== "now"}">累積到下次領</button>`}</td></tr>`; }).join("");
-  const total = PD.reduce((s, d) => s + weekMoney(d.week), 0);
+    return `<tr><td>第 ${w} 週</td><td><span class="mini">${d.groups.map((g, i) => `<i class="${(st.groups[i] || {}).done ? "on" : ""}"></i>`).join("")}</span> ${sc}／6</td><td>${q ? q.first + " 分" : "未考"}</td><td>${st.goal ? st.goal + " 元" : "—"}</td><td><b>${m} 元</b>${engMoney(w) ? `<div class="small muted">國文 ${chiMoney(w)}＋英文 ${engMoney(w)}</div>` : ""}</td><td>${st.goal ? (q ? (chiMoney(w) >= st.goal ? "達成" : "差 " + (st.goal - m) + " 元") : "—") : "—"}</td><td>${p.paid[w] ? `<button class="chip lock" data-w="${w}" aria-pressed="true">已領取 ✓</button>` : !q ? `<span class="small muted">考完週考才能選</span>` : `<button class="chip pick" data-w="${w}" data-c="now" aria-pressed="${p.choice[w] === "now"}">這次領</button><button class="chip pick" data-w="${w}" data-c="later" aria-pressed="${p.choice[w] !== "now"}">累積到下次領</button>`}</td></tr>`; }).join("");
+  const total = PD.reduce((s, d) => s + chiMoney(d.week), 0), etotal = PD.reduce((s, d) => s + engMoney(d.week), 0);
   const ci = claimInfo(p, weekMoney);
   const paid = DATA.reduce((s, d) => s + (p.paid[d.week] ? weekMoney(d.week) : 0), 0);
   const stampsDone = PD.reduce((s, d) => s + d.groups.filter((g, i) => (wk(d.week).groups[i] || {}).done).length, 0), stampsAll = PD.reduce((s, d) => s + d.groups.length, 0);
@@ -683,7 +683,7 @@ function moneyPanel(){
     <div class="prog"><div class="prog-head"><span>目前累計</span><b>${total} 元</b><span class="muted">／1000 元</span></div>
       <div class="prog-bar" role="progressbar" aria-valuenow="${total}" aria-valuemin="0" aria-valuemax="1000"><i style="width:${pct}%"></i></div>
       <div class="small">已完成：柴犬章 ${stampsDone}／${stampsAll} 枚、週考 ${quizDone}／${PD.length} 次　這一期還能再拿最多 <b>${left} 元</b></div>
-      ${nowTip}</div>
+      ${nowTip}<div class="small" style="margin-top:6px">英文（另計，每週上限 250 元）：這一期已賺 <b>${etotal} 元</b></div></div>
     <div class="claim"><div>目前可領取 <b>${ci.can} 元</b>${ci.ready.length ? `（第 ${ci.ready.join("、")} 週）` : ""}</div><div class="small">累積中 ${ci.wait} 元　已領取 ${paid} 元</div></div>
     <div class="chart"><table class="money"><thead><tr><th>週次</th><th>柴犬章</th><th>週考</th><th>目標</th><th>獎金</th><th>目標達成</th><th>領取方式</th></tr></thead><tbody>${rows}</tbody></table></div>
     <div class="small muted">每週考完週考後，自己選「這次領」或「累積到下次領」。選這次領，那一週和之前累積的錢會一起變成可領取；媽媽發錢後會標成「已領取」，就不能再改。</div></div>`);
@@ -732,9 +732,16 @@ function boardPanel(w){
 }
 
 function quizMoney(q){ return !q ? 0 : q.retake ? 25 : reward(q.first); }
-function weekMoney(w){
-  const st = wk(w), E = (me() && me().eng) || {}, done = DATA[w-1].groups.filter((g, i) => st.groups[i] && st.groups[i].done).length + (DATA[w-1].cap && st.cap && st.cap.done ? 1 : 0)
-    + Object.keys(E).filter((k) => E[k] && E[k].done && E[k].wk === w).length;
+// 獎金分科（2026-11-27 Sophie）：國文、英文各自計算，各自每週最多 250 元；媽媽發錢時一起發
+function weekMoney(w){ return chiMoney(w) + engMoney(w); }
+function engMoney(w){
+  const E = (me() && me().eng) || {}, ks = Object.keys(E);
+  const g = ks.filter((k) => !k.endsWith("-quiz") && E[k] && E[k].done && E[k].wk === w).length;
+  const q = ks.filter((k) => k.endsWith("-quiz") && E[k] && E[k].wk1 === w).reduce((s, k) => s + reward(E[k].pct), 0);
+  return Math.min(250, g * PER_GROUP + q);
+}
+function chiMoney(w){
+  const st = wk(w), done = DATA[w-1].groups.filter((g, i) => st.groups[i] && st.groups[i].done).length + (DATA[w-1].cap && st.cap && st.cap.done ? 1 : 0);
   return Math.min(250, done * PER_GROUP + quizMoney(st.quiz));
 }
 
@@ -809,12 +816,12 @@ function renderGroup(app){
       G.graded = true;
       const right = items.filter(([q,k]) => G.ans[k] === q.ans).length;
       const rec = recOf(), was = !!rec.done;
-      if (rec.first == null) rec.first = right;
+      if (rec.first == null) { rec.first = right; if (E) { rec.wk1 = curWeek(); rec.pct = Math.round(right / TOTAL * 100); } }
       if (right === TOTAL) rec.done = true;
       if (E && rec.done && !was) rec.wk = curWeek();
       if (!was && rec.done && !E) setTimeout(() => gearToast(isCap ? 6 : Math.min(gi, 5)), 3200);
       save(); render();
-      replay(`${g.no}｜交卷`, items.map(([q,k]) => G.ans[k] === q.ans), (p) => { if (p) { beep("stamp"); if (rewarded()) toast(`+${PER_GROUP} 元！本週已累積 ${weekMoney(E ? curWeek() : w)} 元`); } });
+      replay(`${g.no}｜交卷`, items.map(([q,k]) => G.ans[k] === q.ans), (p) => { if (p) { beep("stamp"); if (rewarded()) toast(E ? `+${PER_GROUP} 元！本週英文已累積 ${engMoney(curWeek())} 元` : `+${PER_GROUP} 元！本週已累積 ${chiMoney(w)} 元`); } });
     };
     act.append(sub);
     const keep = $(`<button class="btn alt">暫存</button>`);
