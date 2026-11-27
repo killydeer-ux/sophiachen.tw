@@ -89,6 +89,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--ball);outline-o
 .isle .boat svg{width:100%;height:100%}
 .isle .here{position:absolute;left:calc(50% - 30px);top:-18px;font-size:.66rem;font-weight:900;color:#0B1220;background:#F59E0B;border-radius:4px;padding:0 4px}
 @media (prefers-reduced-motion: reduce){.route polyline,.isle.cur .land{animation:none}}
+.pb-weeks{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:2px 14px;margin-top:4px}.pb-wk{display:flex;align-items:center;gap:6px}.pb-wk .stamps{margin-top:0;width:auto}.pb-wk span{font-size:.72rem;color:var(--muted);width:3.6em;flex:0 0 auto}.pb-wk.now span{color:var(--court);font-weight:700}.pb-wk .stamps .shiba{width:20px;height:20px}
 .missions{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
 .mission{text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .mission:hover{border-color:var(--court)}
@@ -620,18 +621,19 @@ function moneyPanel(){
 }
 
 function publicBoard(){
-  const w = curWeek();
-  const el = $(`<div class="panel"><h3>大家的進度（第 ${w} 週）</h3><div class="small muted" id="pb-msg">讀取中…</div><div id="pb-list" style="display:flex;flex-direction:column;gap:12px;margin-top:8px"></div></div>`);
+  const w = curWeek(), per = perOf(w), W = DATA.filter((d) => perOf(d.week) === per).map((d) => d.week);
+  const el = $(`<div class="panel"><h3>大家的柴犬章（第 ${per} 期：第 ${W[0]}～${W[W.length-1]} 週）</h3><div class="small muted" id="pb-msg">讀取中…</div><div id="pb-list" style="display:flex;flex-direction:column;gap:12px;margin-top:8px"></div></div>`);
   if (!API.startsWith("https")) { el.querySelector("#pb-msg").textContent = "連上雲端後才看得到大家的進度。"; return el; }
   api({ action:"publicBoard" }).then((r) => {
     if (!r.ok) return el.querySelector("#pb-msg").textContent = "讀不到大家的進度。";
-    const rows = r.board.map((b) => ({ name:b.name, s:(b.weeks[w] || {}).stamps || 0, q:(b.weeks[w] || {}).quiz, t:b.total || 0 }))
-      .sort((a, b) => b.s - a.s || ((b.q ?? -1) - (a.q ?? -1)) || b.t - a.t);
+    const st = (b, k) => (b.weeks[k] || {}).stamps || 0;
+    const rows = r.board.map((b) => ({ name:b.name, per:W.reduce((s, k) => s + st(b, k), 0), wk:W.map((k) => st(b, k)), s:st(b, w), q:(b.weeks[w] || {}).quiz, t:b.total || 0 }))
+      .sort((a, b) => b.per - a.per || b.s - a.s || b.t - a.t);
     const list = el.querySelector("#pb-list");
-    rows.forEach((x, i) => { list.append($(`<div><div class="row" style="justify-content:space-between;gap:8px"><b>${i === 0 && x.s > 0 ? "👑 " : ""}${esc(x.name)}</b><span class="small muted">本週 ${x.s}／6　週考 ${x.q == null ? "未考" : x.q + " 分"}　累計 ${x.t} 枚</span></div>
-      <div class="stamps">${[0,1,2,3,4,5].map((k) => shiba(k < x.s ? "" : "off")).join("")}</div></div>`)); });
+    rows.forEach((x, i) => { list.append($(`<div><div class="row" style="justify-content:space-between;gap:8px"><b>${i === 0 && x.per > 0 ? "👑 " : ""}${esc(x.name)}</b><span class="small muted">本期 ${x.per} 枚　本週週考 ${x.q == null ? "未考" : x.q + " 分"}　累計 ${x.t} 枚</span></div>
+      <div class="pb-weeks">${W.map((k, j) => `<div class="pb-wk${k === w ? " now" : ""}"><span>第 ${k} 週</span><div class="stamps">${[0,1,2,3,4,5].map((n) => shiba(n < x.wk[j] ? "" : "off")).join("")}</div></div>`).join("")}</div></div>`)); });
     const top = rows[0];
-    el.querySelector("#pb-msg").textContent = !top || top.s === 0 ? "本週還沒有人蓋章，搶第一枚柴犬章！" : `目前領先：${top.name}（${top.s} 枚）`;
+    el.querySelector("#pb-msg").textContent = !top || top.per === 0 ? "這一期還沒有人蓋章，搶第一枚柴犬章！" : `目前領先：${top.name}（本期 ${top.per} 枚）`;
   }).catch(() => { el.querySelector("#pb-msg").textContent = "連不上雲端，等一下再看。"; });
   return el;
 }
