@@ -65,6 +65,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--ball);outline-o
 .sea{position:relative;border-radius:16px;overflow:hidden;border:1px solid #1E3A5F;background:
   linear-gradient(#22D3EE10 1px,transparent 1px) 0 0/24px 24px,linear-gradient(90deg,#22D3EE10 1px,transparent 1px) 0 0/24px 24px,
   radial-gradient(circle at 80% 10%,#1D4ED855,transparent 45%),radial-gradient(circle at 10% 90%,#7C3AED40,transparent 45%),#070C16}
+.sea-money{position:absolute;left:12px;top:34px;z-index:2;display:flex;gap:10px;align-items:baseline;background:#0B1220E6;border:1px solid #F59E0B;border-radius:10px;padding:4px 10px;color:#FDE68A;font-size:.78rem}.sea-money b{color:#FCD34D;font-size:1rem}.sea-money .sm{color:#94A3B8;font-size:.68rem}
+.isle .coin{font-style:normal;margin-left:6px;font-size:.7rem;font-weight:900;color:#0B1220;background:#FCD34D;border-radius:999px;padding:0 6px}.isle .coin.got{background:#4ADE80}
 .sea-title{position:absolute;left:14px;top:10px;font-weight:900;font-size:.9rem;color:#67E8F9;letter-spacing:.08em}
 .route{position:absolute;inset:0;width:100%;height:100%}
 .route polyline{fill:none;stroke:#22D3EE;stroke-opacity:.55;stroke-width:2;stroke-dasharray:6 6;vector-effect:non-scaling-stroke;animation:flow 1.2s linear infinite}
@@ -604,16 +606,18 @@ function islandMap(w, B, st){
   list.push({ kind:"quiz", name: w % 4 === 0 ? "最終首領關" : "首領關", skill: w % 4 === 0 ? quizName(w) : `第 ${w} 週週考`, done: !!q, first: q ? q.first : null, draft: Q && Q.id === w ? 0 : 0, total: 100,
     open: P || allTried || !!q || !!(st.drafts && st.drafts.quiz), need:"6 關都交過卷才能挑戰首領" });
   const cur = list.findIndex((x) => x.open && !x.done);
-  const N = list.length, H = 86 + (N - 1) * 142 + 120, X = [30, 70, 50, 30, 70, 46, 28, 70, 50];
-  const pts = list.map((x, k) => [X[k % X.length], 86 + k * 142]);
+  const N = list.length, H = 126 + (N - 1) * 142 + 120, X = [30, 70, 50, 30, 70, 46, 28, 70, 50];
+  const pts = list.map((x, k) => [X[k % X.length], 126 + k * 142]);
   const el = $(`<div class="sea" style="height:${H}px"><svg class="route" viewBox="0 0 100 ${H}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts.map(([x, y]) => `${x},${y}`).join(" ")}" /></svg></div>`);
   el.prepend($(`<div class="sea-title">任務星圖｜第 ${w} 區　${DATES[w][0]}～${DATES[w][1]}</div>`));
+  if (rewarded()) { const m = chiMoney(w), possible = list.filter((x) => x.kind !== "quiz" && !x.done).length * PER_GROUP + (st.quiz ? 0 : 100), left = Math.max(0, Math.min(250 - m, possible));
+    el.prepend($(`<div class="sea-money"><div>本週已賺 <b>${m} 元</b></div><div>還能再拿 <b>${left} 元</b></div><div class="sm">上限 250 元</div></div>`)); }
   list.forEach((x, k) => { const [px, py] = pts[k];
     const status = x.kind === "quiz" ? (x.done ? `第一次 ${x.first} 分${rewarded() ? `｜本週 ${weekMoney(w)} 元` : ""}` : x.open ? "可以挑戰" : "未解鎖")
       : x.done ? `已攻克｜第一次對 ${x.first} 題` : x.first != null ? `第一次對 ${x.first}／${x.total}，再拚全對` : x.draft ? `作答中 ${x.draft}／${x.total}` : x.open ? "可以出擊" : "未解鎖";
     const b = $(`<button class="isle ${x.kind} ${x.done ? "done" : ""} ${x.open ? "" : "locked"} ${k === cur ? "cur" : ""}" style="left:${px}%;top:${py}px" aria-label="${esc(x.name)}：${esc(x.skill)}，${esc(status)}">
       <span class="land"><span class="num">${x.kind === "cap" ? "訓" : x.kind === "quiz" ? "首" : x.i === 5 ? "末" : String(x.i + 1).padStart(2, "0")}</span>${x.done ? `<span class="chk">✓</span>` : x.open ? "" : `<span class="lk">鎖</span>`}</span>
-      <span class="lab"><b>${esc(x.name)}</b><span>${esc(x.skill)}</span><em>${esc(status)}</em>${x.kind !== "quiz" && x.total ? `<i class="bar"><i style="width:${Math.round((x.done ? x.total : x.first != null ? x.first : x.draft || 0) / x.total * 100)}%"></i></i>` : ""}</span>
+      <span class="lab"><b>${esc(x.name)}${rewarded() ? `<i class="coin${x.done ? " got" : ""}">${x.kind === "quiz" ? (x.done ? `+${quizMoney(st.quiz)}` : "最多 100") : x.done ? `+${PER_GROUP}` : `${PER_GROUP} 元`}</i>` : ""}</b><span>${esc(x.skill)}</span><em>${esc(status)}</em>${x.kind !== "quiz" && x.total ? `<i class="bar"><i style="width:${Math.round((x.done ? x.total : x.first != null ? x.first : x.draft || 0) / x.total * 100)}%"></i></i>` : ""}</span>
       ${k === cur ? `<span class="boat" aria-hidden="true">${avatarSVG(gearCount())}</span><span class="here">目前任務</span>` : ""}</button>`);
     b.onclick = () => { if (!x.open) { toast(x.need + "，就能解鎖！"); return; }
       if (x.kind === "quiz") view = {name:"quiz", week:w}; else view = {name:"group", week:w, gi: x.kind === "cap" ? "cap" : x.i}; render(); };
